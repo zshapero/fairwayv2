@@ -1,4 +1,4 @@
-export const SCHEMA_VERSION = 5;
+export const SCHEMA_VERSION = 6;
 
 export const SCHEMA_STATEMENTS: readonly string[] = [
   `CREATE TABLE IF NOT EXISTS schema_version (
@@ -96,6 +96,14 @@ export const SCHEMA_STATEMENTS: readonly string[] = [
     triggering_round_ids TEXT NOT NULL,
     threshold_value REAL,
     threshold_label TEXT,
+    priority_score REAL NOT NULL DEFAULT 0,
+    confidence TEXT NOT NULL DEFAULT 'moderate',
+    benchmark_value REAL,
+    benchmark_label TEXT,
+    player_value REAL,
+    player_value_label TEXT,
+    recommendation_type TEXT NOT NULL DEFAULT 'opportunity',
+    selected_drill_variant_id TEXT,
     created_at INTEGER NOT NULL,
     dismissed_at INTEGER,
     FOREIGN KEY (player_id) REFERENCES players(id) ON DELETE CASCADE
@@ -106,4 +114,16 @@ export const SCHEMA_STATEMENTS: readonly string[] = [
 
   `CREATE INDEX IF NOT EXISTS idx_recommendations_player_rule_active
     ON recommendations(player_id, rule_id, dismissed_at);`,
+
+  `CREATE TABLE IF NOT EXISTS player_drill_log (
+    id TEXT PRIMARY KEY,
+    player_id INTEGER NOT NULL,
+    recommendation_id TEXT NOT NULL,
+    practiced_at INTEGER NOT NULL,
+    FOREIGN KEY (player_id) REFERENCES players(id) ON DELETE CASCADE,
+    FOREIGN KEY (recommendation_id) REFERENCES recommendations(id) ON DELETE CASCADE
+  );`,
+
+  `CREATE INDEX IF NOT EXISTS idx_drill_log_recommendation
+    ON player_drill_log(recommendation_id, practiced_at);`,
 ];

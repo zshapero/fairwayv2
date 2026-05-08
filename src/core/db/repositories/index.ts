@@ -6,4 +6,5 @@ export * as rounds from "./rounds";
 export * as holeScores from "./holeScores";
 export * as handicapSnapshots from "./handicapSnapshots";
 export * as recommendations from "./recommendations";
+export * as drillLog from "./drillLog";
 export * as schemaVersion from "./schemaVersion";

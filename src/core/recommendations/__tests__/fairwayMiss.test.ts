@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { pullTendency, sliceTendency } from "../rules";
-import { makeRound } from "./helpers";
+import { makeRound, makeContext } from "./helpers";
 
 function roundWithFairwayMisses(id: number, ratioRight: number, ratioLeft: number) {
   // 14 par-4/5 holes (skipping the 4 par 3s in default layout).
@@ -47,14 +47,14 @@ describe("sliceTendency", () => {
     const rounds = Array.from({ length: 7 }, (_, i) =>
       roundWithFairwayMisses(i + 1, 0.7, 0.1),
     );
-    expect(sliceTendency(rounds)).toBeNull();
+    expect(sliceTendency(makeContext(rounds))).toBeNull();
   });
 
   it("triggers when 60%+ of fairway misses are right", () => {
     const rounds = Array.from({ length: 8 }, (_, i) =>
       roundWithFairwayMisses(i + 1, 0.55, 0.05),
     );
-    const result = sliceTendency(rounds);
+    const result = sliceTendency(makeContext(rounds));
     expect(result).not.toBeNull();
     expect(result?.ruleId).toBe("slice_tendency");
     expect((result?.thresholdValue ?? 0)).toBeGreaterThanOrEqual(0.6);
@@ -66,7 +66,7 @@ describe("sliceTendency", () => {
     const rounds = Array.from({ length: 8 }, (_, i) =>
       roundWithFairwayMisses(i + 1, 0.3, 0.45),
     );
-    expect(sliceTendency(rounds)).toBeNull();
+    expect(sliceTendency(makeContext(rounds))).toBeNull();
   });
 });
 
@@ -75,7 +75,7 @@ describe("pullTendency", () => {
     const rounds = Array.from({ length: 8 }, (_, i) =>
       roundWithFairwayMisses(i + 1, 0.05, 0.55),
     );
-    const result = pullTendency(rounds);
+    const result = pullTendency(makeContext(rounds));
     expect(result).not.toBeNull();
     expect(result?.ruleId).toBe("pull_tendency");
   });
@@ -84,7 +84,7 @@ describe("pullTendency", () => {
     const rounds = Array.from({ length: 8 }, (_, i) =>
       roundWithFairwayMisses(i + 1, 0.55, 0.05),
     );
-    expect(pullTendency(rounds)).toBeNull();
+    expect(pullTendency(makeContext(rounds))).toBeNull();
   });
 
   it("returns null when there aren't enough fairway misses to evaluate", () => {
@@ -92,6 +92,6 @@ describe("pullTendency", () => {
     const rounds = Array.from({ length: 8 }, (_, i) =>
       roundWithFairwayMisses(i + 1, 0.0, 0.0),
     );
-    expect(pullTendency(rounds)).toBeNull();
+    expect(pullTendency(makeContext(rounds))).toBeNull();
   });
 });

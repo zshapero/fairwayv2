@@ -1,5 +1,5 @@
 import { ALL_RULES } from "./rules";
-import type { RoundWithHoleScores, RuleOutput } from "./types";
+import type { RuleContext, RuleOutput } from "./types";
 
 export interface EngineDecision {
   /** Rule outputs that should be persisted (replacing any prior rec for the same rule). */
@@ -9,29 +9,40 @@ export interface EngineDecision {
 }
 
 /**
- * Run every rule against the supplied chronologically ordered rounds and
- * return the deterministic set of recommendations to persist plus the rule
- * ids whose recommendations should be cleared. Pure so it can be unit-tested
- * without a database.
+ * Run every rule against the supplied context and return the deterministic
+ * set of recommendations to persist plus the rule ids whose recommendations
+ * should be cleared.
  *
- * @param rounds   Rounds (oldest first) for the player.
- * @param activeRuleIds Optional list of rule ids that currently have an
- *   active recommendation; used so we only ask the persister to dismiss
- *   rules that previously triggered.
+ * Opportunity recommendations are sorted highest-priority first; strengths
+ * and milestones are sorted newest-first by triggering round id (a proxy
+ * for recency since IDs grow monotonically with `played_at`).
  */
 export function evaluateRules(
-  rounds: readonly RoundWithHoleScores[],
+  ctx: RuleContext,
   activeRuleIds: readonly string[] = [],
 ): EngineDecision {
-  const toCreate: RuleOutput[] = [];
+  const triggered: RuleOutput[] = [];
   const triggeredIds = new Set<string>();
   for (const { id, rule } of ALL_RULES) {
-    const result = rule(rounds);
+    const result = rule(ctx);
     if (result) {
-      toCreate.push(result);
+      triggered.push(result);
       triggeredIds.add(id);
     }
   }
+
+  const opportunities = triggered
+    .filter((r) => r.type === "opportunity")
+    .sort((a, b) => b.priority - a.priority);
+  const positives = triggered
+    .filter((r) => r.type !== "opportunity")
+    .sort((a, b) => {
+      const aMax = Math.max(0, ...a.triggeringRoundIds);
+      const bMax = Math.max(0, ...b.triggeringRoundIds);
+      return bMax - aMax;
+    });
+
+  const toCreate = [...opportunities, ...positives];
   const toDismiss = activeRuleIds.filter((id) => !triggeredIds.has(id));
   return { toCreate, toDismiss };
 }

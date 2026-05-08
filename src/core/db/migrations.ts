@@ -78,10 +78,61 @@ export const RECOMMENDATIONS_INDEX_SQL = [
   "CREATE INDEX IF NOT EXISTS idx_recommendations_player_rule_active ON recommendations(player_id, rule_id, dismissed_at);",
 ];
 
+/** Columns that `recommendations` must have at schema v6. */
+export const RECOMMENDATION_COLUMNS_V6: readonly ColumnSpec[] = [
+  {
+    name: "priority_score",
+    alterSql: "ALTER TABLE recommendations ADD COLUMN priority_score REAL NOT NULL DEFAULT 0;",
+  },
+  {
+    name: "confidence",
+    alterSql: "ALTER TABLE recommendations ADD COLUMN confidence TEXT NOT NULL DEFAULT 'moderate';",
+  },
+  {
+    name: "benchmark_value",
+    alterSql: "ALTER TABLE recommendations ADD COLUMN benchmark_value REAL;",
+  },
+  {
+    name: "benchmark_label",
+    alterSql: "ALTER TABLE recommendations ADD COLUMN benchmark_label TEXT;",
+  },
+  {
+    name: "player_value",
+    alterSql: "ALTER TABLE recommendations ADD COLUMN player_value REAL;",
+  },
+  {
+    name: "player_value_label",
+    alterSql: "ALTER TABLE recommendations ADD COLUMN player_value_label TEXT;",
+  },
+  {
+    name: "recommendation_type",
+    alterSql:
+      "ALTER TABLE recommendations ADD COLUMN recommendation_type TEXT NOT NULL DEFAULT 'opportunity';",
+  },
+  {
+    name: "selected_drill_variant_id",
+    alterSql: "ALTER TABLE recommendations ADD COLUMN selected_drill_variant_id TEXT;",
+  },
+];
+
+export const PLAYER_DRILL_LOG_TABLE_SQL = `CREATE TABLE IF NOT EXISTS player_drill_log (
+    id TEXT PRIMARY KEY,
+    player_id INTEGER NOT NULL,
+    recommendation_id TEXT NOT NULL,
+    practiced_at INTEGER NOT NULL,
+    FOREIGN KEY (player_id) REFERENCES players(id) ON DELETE CASCADE,
+    FOREIGN KEY (recommendation_id) REFERENCES recommendations(id) ON DELETE CASCADE
+  );`;
+
+export const PLAYER_DRILL_LOG_INDEX_SQL =
+  "CREATE INDEX IF NOT EXISTS idx_drill_log_recommendation ON player_drill_log(recommendation_id, practiced_at);";
+
 export interface ExistingColumnsByTable {
   courses: readonly string[];
   rounds: readonly string[];
   hole_scores: readonly string[];
+  /** Empty when the table doesn't yet exist. */
+  recommendations?: readonly string[];
 }
 
 export interface ExistingState {
@@ -132,5 +183,35 @@ export function planMigrationToV5(existing: ExistingState): string[] {
     statements.push(RECOMMENDATIONS_TABLE_SQL);
     statements.push(...RECOMMENDATIONS_INDEX_SQL);
   }
+  return statements;
+}
+
+/**
+ * Plan the full set of statements to bring the database to schema v6: the v5
+ * additions plus the new `recommendations` columns (priority/benchmark/etc),
+ * the `player_drill_log` table, and its supporting index. Idempotent: if a
+ * column already exists or the table already exists, the planner skips that
+ * step.
+ */
+export function planMigrationToV6(existing: ExistingState): string[] {
+  const statements = planMigrationToV5(existing);
+  const tables = new Set(existing.tables);
+
+  // Column adds on `recommendations` only apply when the table already exists.
+  // If it didn't, planMigrationToV5 just emitted the v6-shaped CREATE TABLE
+  // (since SCHEMA_STATEMENTS in schema.ts is the source of truth for that),
+  // so no ALTERs are needed.
+  if (tables.has("recommendations")) {
+    const existingCols = new Set(existing.columns.recommendations ?? []);
+    for (const spec of RECOMMENDATION_COLUMNS_V6) {
+      if (!existingCols.has(spec.name)) statements.push(spec.alterSql);
+    }
+  }
+
+  if (!tables.has("player_drill_log")) {
+    statements.push(PLAYER_DRILL_LOG_TABLE_SQL);
+    statements.push(PLAYER_DRILL_LOG_INDEX_SQL);
+  }
+
   return statements;
 }

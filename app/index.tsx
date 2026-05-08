@@ -18,7 +18,10 @@ interface RecentRound {
 export default function HomeScreen() {
   const [handicapIndex, setHandicapIndex] = useState<number | null | undefined>(undefined);
   const [recent, setRecent] = useState<RecentRound[]>([]);
-  const [activeRecCount, setActiveRecCount] = useState(0);
+  const [recCounts, setRecCounts] = useState<{ wins: number; opportunities: number }>({
+    wins: 0,
+    opportunities: 0,
+  });
 
   useFocusEffect(
     useCallback(() => {
@@ -30,17 +33,22 @@ export default function HomeScreen() {
           if (!player) {
             if (!cancelled) {
               setRecent([]);
-              setActiveRecCount(0);
+              setRecCounts({ wins: 0, opportunities: 0 });
             }
             return;
           }
-          const [allRounds, deltas, allCourses, recCount] = await Promise.all([
+          const [allRounds, deltas, allCourses, recsByType] = await Promise.all([
             roundsRepo.listCompletedRoundsForPlayer(player.id),
             loadRoundDeltasForPlayer(player.id),
             coursesRepo.listCourses(),
-            recommendationsRepo.countActiveForPlayer(player.id),
+            recommendationsRepo.countActiveByTypeForPlayer(player.id),
           ]);
-          if (!cancelled) setActiveRecCount(recCount);
+          if (!cancelled) {
+            setRecCounts({
+              wins: (recsByType.strength ?? 0) + (recsByType.milestone ?? 0),
+              opportunities: recsByType.opportunity ?? 0,
+            });
+          }
           const courseById = new Map(allCourses.map((c) => [c.id, c]));
           const deltaById = new Map<number, RoundIndexBadge>(
             deltas.map((d) => [d.roundId, d]),
@@ -58,7 +66,7 @@ export default function HomeScreen() {
           if (!cancelled) {
             setHandicapIndex(null);
             setRecent([]);
-            setActiveRecCount(0);
+            setRecCounts({ wins: 0, opportunities: 0 });
           }
         }
       })();
@@ -102,12 +110,12 @@ export default function HomeScreen() {
           </Link>
         </View>
 
-        {activeRecCount > 0 ? (
+        {recCounts.wins + recCounts.opportunities > 0 ? (
           <Link
             href="/recommendations"
             className="rounded-xl bg-fairway-700 px-4 py-3 text-center text-base font-semibold text-white"
           >
-            Recommendations ({activeRecCount})
+            {formatRecLabel(recCounts.wins, recCounts.opportunities)}
           </Link>
         ) : null}
 
@@ -169,6 +177,16 @@ function RecentRoundRow({
       </View>
     </Pressable>
   );
+}
+
+function formatRecLabel(wins: number, opportunities: number): string {
+  if (wins > 0 && opportunities > 0) {
+    return `Recommendations (${wins} ${wins === 1 ? "win" : "wins"}, ${opportunities} to work on)`;
+  }
+  if (wins > 0) {
+    return `Recommendations (${wins} ${wins === 1 ? "win" : "wins"})`;
+  }
+  return `Recommendations (${opportunities})`;
 }
 
 function DeltaBadge({ delta }: { delta: number | null }) {

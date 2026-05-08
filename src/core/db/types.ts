@@ -77,6 +77,10 @@ export interface SchemaVersionRow {
   applied_at: string;
 }
 
+export type RecommendationType = "opportunity" | "strength" | "milestone";
+
+export type ConfidenceLevel = "high" | "moderate" | "emerging";
+
 export interface Recommendation {
   id: string;
   player_id: number;
@@ -89,10 +93,25 @@ export interface Recommendation {
   triggering_round_ids: number[];
   threshold_value: number | null;
   threshold_label: string | null;
+  priority_score: number;
+  confidence: ConfidenceLevel;
+  benchmark_value: number | null;
+  benchmark_label: string | null;
+  player_value: number | null;
+  player_value_label: string | null;
+  recommendation_type: RecommendationType;
+  selected_drill_variant_id: string | null;
   /** Unix epoch milliseconds. */
   created_at: number;
   /** Unix epoch milliseconds when dismissed; null while active. */
   dismissed_at: number | null;
+}
+
+export interface DrillLogEntry {
+  id: string;
+  player_id: number;
+  recommendation_id: string;
+  practiced_at: number;
 }
 
 export type TableName =
@@ -104,6 +123,7 @@ export type TableName =
   | "hole_scores"
   | "handicap_snapshots"
   | "recommendations"
+  | "player_drill_log"
   | "schema_version";
 
 export const ALL_TABLES: readonly TableName[] = [
@@ -115,5 +135,6 @@ export const ALL_TABLES: readonly TableName[] = [
   "hole_scores",
   "handicap_snapshots",
   "recommendations",
+  "player_drill_log",
   "schema_version",
 ];

@@ -1,6 +1,6 @@
 import * as SQLite from "expo-sqlite";
 import { SCHEMA_STATEMENTS, SCHEMA_VERSION } from "./schema";
-import { planMigrationToV5 } from "./migrations";
+import { planMigrationToV6 } from "./migrations";
 
 const DB_NAME = "fairway.db";
 
@@ -23,14 +23,15 @@ async function readTableNames(db: SQLite.SQLiteDatabase): Promise<string[]> {
 }
 
 async function applyIncrementalMigrations(db: SQLite.SQLiteDatabase): Promise<void> {
-  const [courses, rounds, hole_scores, tables] = await Promise.all([
+  const tables = await readTableNames(db);
+  const [courses, rounds, hole_scores, recommendations] = await Promise.all([
     readColumnNames(db, "courses"),
     readColumnNames(db, "rounds"),
     readColumnNames(db, "hole_scores"),
-    readTableNames(db),
+    tables.includes("recommendations") ? readColumnNames(db, "recommendations") : Promise.resolve([] as string[]),
   ]);
-  const statements = planMigrationToV5({
-    columns: { courses, rounds, hole_scores },
+  const statements = planMigrationToV6({
+    columns: { courses, rounds, hole_scores, recommendations },
     tables,
   });
   for (const sql of statements) {

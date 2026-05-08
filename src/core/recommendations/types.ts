@@ -1,7 +1,10 @@
 import type {
+  ConfidenceLevel,
   FairwayMissDirection,
   GirMissDirection,
+  RecommendationType,
 } from "@/core/db/types";
+import type { Benchmarks, PlayerLevel } from "./benchmarks";
 
 /** A single hole, pre-joined with its par and stroke index for the rules. */
 export interface RoundHole {
@@ -36,16 +39,70 @@ export interface RoundWithHoleScores {
   holes: readonly RoundHole[];
 }
 
-/** The pure output of a rule when it triggers (or null when it doesn't). */
+export interface HandicapSnapshotPoint {
+  /** ISO timestamp from the snapshot row. */
+  computed_at: string;
+  handicap_index: number | null;
+}
+
+/** Inputs every rule receives so it can phrase findings in player context. */
+export interface RuleContext {
+  rounds: readonly RoundWithHoleScores[];
+  benchmarks: Benchmarks;
+  handicapIndex: number | null;
+  level: PlayerLevel;
+  /** Snapshots in chronological order (oldest first). Used by handicap_drop. */
+  handicapSnapshots: readonly HandicapSnapshotPoint[];
+}
+
+/** What a triggered rule emits. The runner persists this verbatim. */
 export interface RuleOutput {
   ruleId: string;
+  type: RecommendationType;
   title: string;
   summary: string;
   detail: string;
   drill: string;
+  selectedDrillVariantId: string | null;
   triggeringRoundIds: number[];
   thresholdValue: number | null;
   thresholdLabel: string | null;
+  priority: number;
+  confidence: ConfidenceLevel;
+  playerValue: number | null;
+  playerValueLabel: string | null;
+  benchmarkValue: number | null;
+  benchmarkLabel: string | null;
 }
 
-export type Rule = (rounds: readonly RoundWithHoleScores[]) => RuleOutput | null;
+export type Rule = (ctx: RuleContext) => RuleOutput | null;
+
+export type Severity = "mild" | "moderate" | "severe";
+
+export interface DrillVariant {
+  id: string;
+  drill: string;
+  /** Required level (omit for "any"). */
+  level?: PlayerLevel;
+  /** Required severity (omit for "any"). */
+  severity?: Severity;
+}
+
+/**
+ * Pick the most-specific matching variant: prefer (level + severity) match,
+ * then level only, then severity only, then the first variant as fallback.
+ */
+export function selectDrillVariant(
+  variants: readonly DrillVariant[],
+  level: PlayerLevel,
+  severity: Severity,
+): DrillVariant {
+  const exact = variants.find((v) => v.level === level && v.severity === severity);
+  if (exact) return exact;
+  const byLevel = variants.find((v) => v.level === level && !v.severity);
+  if (byLevel) return byLevel;
+  const bySeverity = variants.find((v) => v.severity === severity && !v.level);
+  if (bySeverity) return bySeverity;
+  const generic = variants.find((v) => !v.level && !v.severity);
+  return generic ?? variants[0]!;
+}
