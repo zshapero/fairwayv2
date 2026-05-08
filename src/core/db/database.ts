@@ -20,6 +20,21 @@ async function applyIncrementalMigrations(
       );
     }
   }
+  if (fromVersion < 3) {
+    // v2 -> v3: round lifecycle (draft vs completed) + cached differential,
+    // plus a penalty_strokes field on hole_scores for the round entry flow.
+    const roundCols = await db.getAllAsync<{ name: string }>("PRAGMA table_info(rounds);");
+    if (!roundCols.some((c) => c.name === "completed_at")) {
+      await db.execAsync("ALTER TABLE rounds ADD COLUMN completed_at TEXT;");
+    }
+    if (!roundCols.some((c) => c.name === "differential")) {
+      await db.execAsync("ALTER TABLE rounds ADD COLUMN differential REAL;");
+    }
+    const holeCols = await db.getAllAsync<{ name: string }>("PRAGMA table_info(hole_scores);");
+    if (!holeCols.some((c) => c.name === "penalty_strokes")) {
+      await db.execAsync("ALTER TABLE hole_scores ADD COLUMN penalty_strokes INTEGER;");
+    }
+  }
 }
 
 async function migrate(db: SQLite.SQLiteDatabase): Promise<void> {
