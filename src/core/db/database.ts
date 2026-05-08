@@ -1,39 +1,29 @@
 import * as SQLite from "expo-sqlite";
 import { SCHEMA_STATEMENTS, SCHEMA_VERSION } from "./schema";
+import { planMigrationToV4 } from "./migrations";
 
 const DB_NAME = "fairway.db";
 
 let cachedDb: SQLite.SQLiteDatabase | null = null;
 let migrationPromise: Promise<SQLite.SQLiteDatabase> | null = null;
 
-async function applyIncrementalMigrations(
+async function readColumnNames(
   db: SQLite.SQLiteDatabase,
-  fromVersion: number,
-): Promise<void> {
-  if (fromVersion < 2) {
-    // v1 -> v2: add external_id to courses for GolfCourseAPI imports.
-    const cols = await db.getAllAsync<{ name: string }>("PRAGMA table_info(courses);");
-    if (!cols.some((c) => c.name === "external_id")) {
-      await db.execAsync("ALTER TABLE courses ADD COLUMN external_id TEXT;");
-      await db.execAsync(
-        "CREATE UNIQUE INDEX IF NOT EXISTS idx_courses_external_id ON courses(external_id);",
-      );
-    }
-  }
-  if (fromVersion < 3) {
-    // v2 -> v3: round lifecycle (draft vs completed) + cached differential,
-    // plus a penalty_strokes field on hole_scores for the round entry flow.
-    const roundCols = await db.getAllAsync<{ name: string }>("PRAGMA table_info(rounds);");
-    if (!roundCols.some((c) => c.name === "completed_at")) {
-      await db.execAsync("ALTER TABLE rounds ADD COLUMN completed_at TEXT;");
-    }
-    if (!roundCols.some((c) => c.name === "differential")) {
-      await db.execAsync("ALTER TABLE rounds ADD COLUMN differential REAL;");
-    }
-    const holeCols = await db.getAllAsync<{ name: string }>("PRAGMA table_info(hole_scores);");
-    if (!holeCols.some((c) => c.name === "penalty_strokes")) {
-      await db.execAsync("ALTER TABLE hole_scores ADD COLUMN penalty_strokes INTEGER;");
-    }
+  table: string,
+): Promise<string[]> {
+  const rows = await db.getAllAsync<{ name: string }>(`PRAGMA table_info(${table});`);
+  return rows.map((r) => r.name);
+}
+
+async function applyIncrementalMigrations(db: SQLite.SQLiteDatabase): Promise<void> {
+  const [courses, rounds, hole_scores] = await Promise.all([
+    readColumnNames(db, "courses"),
+    readColumnNames(db, "rounds"),
+    readColumnNames(db, "hole_scores"),
+  ]);
+  const statements = planMigrationToV4({ courses, rounds, hole_scores });
+  for (const sql of statements) {
+    await db.execAsync(sql);
   }
 }
 
@@ -47,7 +37,7 @@ async function migrate(db: SQLite.SQLiteDatabase): Promise<void> {
   );
   const currentVersion = row?.version ?? 0;
   if (currentVersion < SCHEMA_VERSION) {
-    await applyIncrementalMigrations(db, currentVersion);
+    await applyIncrementalMigrations(db);
     await db.runAsync(
       "INSERT OR REPLACE INTO schema_version (version) VALUES (?);",
       SCHEMA_VERSION,

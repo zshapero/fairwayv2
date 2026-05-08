@@ -1,4 +1,4 @@
-export const SCHEMA_VERSION = 3;
+export const SCHEMA_VERSION = 4;
 
 export const SCHEMA_STATEMENTS: readonly string[] = [
   `CREATE TABLE IF NOT EXISTS schema_version (
@@ -68,6 +68,10 @@ export const SCHEMA_STATEMENTS: readonly string[] = [
     fairway_hit INTEGER,
     green_in_regulation INTEGER,
     penalty_strokes INTEGER,
+    fairway_miss_direction TEXT,
+    gir_miss_direction TEXT,
+    hit_from_sand INTEGER NOT NULL DEFAULT 0,
+    sand_save INTEGER,
     FOREIGN KEY (round_id) REFERENCES rounds(id) ON DELETE CASCADE,
     UNIQUE (round_id, hole_number)
   );`,

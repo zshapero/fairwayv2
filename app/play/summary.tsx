@@ -74,6 +74,9 @@ export default function SummaryScreen() {
             fairway_hit: row.fairway_hit,
             green_in_regulation: row.green_in_regulation,
             penalty_strokes: row.penalty_strokes,
+            fairway_miss_direction: row.fairway_miss_direction,
+            gir_miss_direction: row.gir_miss_direction,
+            hit_from_sand: row.hit_from_sand ?? 0,
           })),
           priorDifferentials,
         });
