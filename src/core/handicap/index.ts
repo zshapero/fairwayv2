@@ -5,4 +5,5 @@ export { scoreDifferential, type ScoreDifferentialInput } from "./scoreDifferent
 export { handicapIndex } from "./handicapIndex";
 export { courseHandicap, type CourseHandicapInput } from "./courseHandicap";
 export { exceptionalScoreReduction } from "./exceptionalScoreReduction";
+export { calculateMovement, type MovementResult } from "./calculateMovement";
 export { WHS_LOOKUP, lookupWhsRow, type WhsLookupRow } from "./whsTable";
