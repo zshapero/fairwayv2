@@ -1,6 +1,6 @@
 import { Link, router, useFocusEffect } from "expo-router";
 import { useCallback, useState } from "react";
-import { Pressable, SafeAreaView, ScrollView, Text, View } from "react-native";
+import { View } from "react-native";
 
 import * as coursesRepo from "@/core/db/repositories/courses";
 import * as recommendationsRepo from "@/core/db/repositories/recommendations";
@@ -8,6 +8,20 @@ import * as roundsRepo from "@/core/db/repositories/rounds";
 import type { Course, Round } from "@/core/db/types";
 import { getCurrentPlayer } from "@/services/currentPlayer";
 import { loadRoundDeltasForPlayer, type RoundIndexBadge } from "@/services/roundMovement";
+import {
+  Body,
+  Button,
+  Card,
+  Caption,
+  Display,
+  Heading,
+  Micro,
+  NumberDisplay,
+  Pill,
+  Screen,
+  Section,
+} from "@/components";
+import { colors, spacing } from "@/design/tokens";
 
 interface RecentRound {
   round: Round;
@@ -50,12 +64,8 @@ export default function HomeScreen() {
             });
           }
           const courseById = new Map(allCourses.map((c) => [c.id, c]));
-          const deltaById = new Map<number, RoundIndexBadge>(
-            deltas.map((d) => [d.roundId, d]),
-          );
-          const sorted = [...allRounds].sort((a, b) =>
-            b.played_at.localeCompare(a.played_at),
-          );
+          const deltaById = new Map<number, RoundIndexBadge>(deltas.map((d) => [d.roundId, d]));
+          const sorted = [...allRounds].sort((a, b) => b.played_at.localeCompare(a.played_at));
           const recentRows: RecentRound[] = sorted.slice(0, 5).map((r) => ({
             round: r,
             course: courseById.get(r.course_id) ?? null,
@@ -77,69 +87,78 @@ export default function HomeScreen() {
   );
 
   const indexLabel =
-    handicapIndex === undefined ? "…" : handicapIndex === null ? "—" : handicapIndex.toFixed(1);
+    handicapIndex === undefined ? "—" : handicapIndex === null ? "—" : handicapIndex.toFixed(1);
 
   return (
-    <SafeAreaView className="flex-1 bg-fairway-50">
-      <ScrollView contentContainerClassName="p-5 gap-5 pb-10">
-        <View className="items-center pt-8 gap-1">
-          <Text className="text-4xl font-bold text-fairway-700">Fairway</Text>
-          <Text className="mt-2 text-xs uppercase tracking-wide text-fairway-700/70">
-            Handicap Index
-          </Text>
-          <Text className="text-5xl font-semibold text-fairway-700">{indexLabel}</Text>
-          {handicapIndex === null ? (
-            <Text className="mt-1 text-xs text-fairway-700/70">
-              Play 3 rounds to establish your index.
-            </Text>
-          ) : null}
-        </View>
+    <Screen>
+      <View style={{ alignItems: "center", paddingTop: spacing.xl, gap: spacing.xs }}>
+        <Micro color="accent">HANDICAP INDEX</Micro>
+        <Display color="primary">{indexLabel}</Display>
+        <Caption style={{ textAlign: "center" }}>
+          {handicapIndex === null
+            ? "Play 3 rounds to establish your index."
+            : "Based on best 8 of last 20 rounds."}
+        </Caption>
+      </View>
 
-        <View className="items-center gap-2">
-          <Link
-            href="/play/select-course"
-            className="rounded-lg bg-fairway-500 px-5 py-3 text-base font-semibold text-white"
-          >
-            Start a round
-          </Link>
-          <Link href="/search" className="text-base font-semibold text-fairway-700 underline">
-            Search Courses
-          </Link>
-          <Link href="/debug" className="text-sm text-fairway-700 underline">
-            Debug
-          </Link>
-        </View>
+      <View style={{ alignItems: "center", marginTop: spacing.md }}>
+        <Button onPress={() => router.push("/play/select-course")}>Start a Round</Button>
+      </View>
 
-        {recCounts.wins + recCounts.opportunities > 0 ? (
-          <Link
-            href="/recommendations"
-            className="rounded-xl bg-fairway-700 px-4 py-3 text-center text-base font-semibold text-white"
-          >
-            {formatRecLabel(recCounts.wins, recCounts.opportunities)}
-          </Link>
-        ) : null}
+      {recCounts.wins + recCounts.opportunities > 0 ? (
+        <Section label="RECOMMENDATIONS">
+          <Card onPress={() => router.push("/recommendations")}>
+            <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between" }}>
+              <View style={{ flex: 1, gap: spacing.xxs }}>
+                <Heading>{formatRecHeadline(recCounts.wins, recCounts.opportunities)}</Heading>
+                <Caption>{formatRecSubtitle(recCounts.wins, recCounts.opportunities)}</Caption>
+              </View>
+              <Body color="primary">›</Body>
+            </View>
+          </Card>
+        </Section>
+      ) : null}
 
-        {recent.length > 0 ? (
-          <View className="gap-2">
-            <Text className="px-1 text-xs uppercase tracking-wide text-fairway-700/70">
-              Recent rounds
-            </Text>
-            {recent.map(({ round, course, delta }) => (
-              <RecentRoundRow
-                key={round.id}
-                round={round}
-                course={course}
-                delta={delta}
-                onPress={() =>
-                  router.push({ pathname: "/rounds/[id]", params: { id: String(round.id) } })
-                }
-              />
-            ))}
-          </View>
-        ) : null}
-      </ScrollView>
-    </SafeAreaView>
+      {recent.length > 0 ? (
+        <Section label="RECENT ROUNDS">
+          {recent.map(({ round, course, delta }) => (
+            <RecentRoundRow
+              key={round.id}
+              round={round}
+              course={course}
+              delta={delta}
+              onPress={() =>
+                router.push({ pathname: "/rounds/[id]", params: { id: String(round.id) } })
+              }
+            />
+          ))}
+        </Section>
+      ) : null}
+
+      <View style={{ alignItems: "center", marginTop: spacing.lg, gap: spacing.xs }}>
+        <Link href="/search">
+          <Caption color="primary">Search Courses</Caption>
+        </Link>
+        <Link href="/debug">
+          <Caption>Debug</Caption>
+        </Link>
+      </View>
+    </Screen>
   );
+}
+
+function formatRecHeadline(wins: number, opportunities: number): string {
+  if (wins > 0 && opportunities > 0) {
+    return `${wins} ${wins === 1 ? "win" : "wins"}, ${opportunities} to work on`;
+  }
+  if (wins > 0) return `${wins} ${wins === 1 ? "win" : "wins"} this week`;
+  return `${opportunities} ${opportunities === 1 ? "opportunity" : "opportunities"}`;
+}
+
+function formatRecSubtitle(wins: number, opportunities: number): string {
+  if (wins > 0 && opportunities > 0) return "What's working, and where to focus next";
+  if (wins > 0) return "Patterns the engine is celebrating";
+  return "Patterns the engine spotted in your recent rounds";
 }
 
 function RecentRoundRow({
@@ -155,53 +174,36 @@ function RecentRoundRow({
 }) {
   const playedDate = new Date(round.played_at).toLocaleDateString();
   return (
-    <Pressable
-      onPress={onPress}
-      className="flex-row items-center justify-between rounded-xl bg-white p-3"
-      style={{ elevation: 1 }}
-    >
-      <View className="flex-1 pr-3">
-        <Text className="text-base font-semibold text-gray-900" numberOfLines={1}>
-          {course?.name ?? "Course"}
-        </Text>
-        <Text className="text-xs text-gray-500">{playedDate}</Text>
+    <Card onPress={onPress}>
+      <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between" }}>
+        <View style={{ flex: 1, gap: 2 }}>
+          <Heading numberOfLines={1}>{course?.name ?? "Course"}</Heading>
+          <Caption>{playedDate}</Caption>
+        </View>
+        <View style={{ alignItems: "flex-end", gap: spacing.xxs }}>
+          <Caption>
+            Diff{" "}
+            <Caption color="text">
+              {round.differential != null ? round.differential.toFixed(1) : "—"}
+            </Caption>
+          </Caption>
+          <DeltaBadge delta={delta} />
+        </View>
       </View>
-      <View className="items-end">
-        <Text className="text-sm text-gray-700">
-          Diff{" "}
-          <Text className="font-semibold">
-            {round.differential != null ? round.differential.toFixed(1) : "—"}
-          </Text>
-        </Text>
-        <DeltaBadge delta={delta} />
-      </View>
-    </Pressable>
+    </Card>
   );
 }
 
-function formatRecLabel(wins: number, opportunities: number): string {
-  if (wins > 0 && opportunities > 0) {
-    return `Recommendations (${wins} ${wins === 1 ? "win" : "wins"}, ${opportunities} to work on)`;
-  }
-  if (wins > 0) {
-    return `Recommendations (${wins} ${wins === 1 ? "win" : "wins"})`;
-  }
-  return `Recommendations (${opportunities})`;
-}
-
 function DeltaBadge({ delta }: { delta: number | null }) {
-  if (delta === null) {
-    return <Text className="text-xs text-gray-400">No change</Text>;
-  }
+  if (delta === null) return <Pill variant="neutral" outline>—</Pill>;
   const rounded = Math.round(delta * 10) / 10;
-  if (rounded === 0) {
-    return (
-      <Text className="rounded bg-gray-100 px-2 py-0.5 text-xs text-gray-600">No change</Text>
-    );
-  }
-  const isDown = rounded < 0;
-  const color = isDown ? "bg-green-100 text-green-700" : "bg-red-100 text-red-700";
-  const arrow = isDown ? "↓" : "↑";
-  const label = `${arrow} ${Math.abs(rounded).toFixed(1)}`;
-  return <Text className={`rounded px-2 py-0.5 text-xs font-semibold ${color}`}>{label}</Text>;
+  if (rounded === 0) return <Pill variant="neutral">No change</Pill>;
+  const arrow = rounded < 0 ? "↓" : "↑";
+  const variant: "positive" | "attention" = rounded < 0 ? "positive" : "attention";
+  void colors;
+  return (
+    <Pill variant={variant}>
+      {arrow} {Math.abs(rounded).toFixed(1)}
+    </Pill>
+  );
 }

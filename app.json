@@ -5,23 +5,41 @@
     "version": "0.1.0",
     "orientation": "portrait",
     "scheme": "fairway",
-    "userInterfaceStyle": "automatic",
+    "userInterfaceStyle": "light",
     "newArchEnabled": true,
+    "primaryColor": "#1F4D3F",
+    "splash": {
+      "backgroundColor": "#FAF6EE",
+      "resizeMode": "contain"
+    },
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.fairway.app"
+      "bundleIdentifier": "com.fairway.app",
+      "splash": {
+        "backgroundColor": "#FAF6EE",
+        "resizeMode": "contain"
+      }
     },
     "android": {
       "package": "com.fairway.app",
-      "edgeToEdgeEnabled": true
+      "edgeToEdgeEnabled": true,
+      "adaptiveIcon": {
+        "backgroundColor": "#1F4D3F"
+      },
+      "splash": {
+        "backgroundColor": "#FAF6EE",
+        "resizeMode": "contain"
+      }
     },
     "web": {
       "bundler": "metro",
-      "output": "static"
+      "output": "static",
+      "backgroundColor": "#FAF6EE"
     },
     "plugins": [
       "expo-router",
-      "expo-sqlite"
+      "expo-sqlite",
+      "expo-font"
     ],
     "experiments": {
       "typedRoutes": true
