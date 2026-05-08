@@ -45,6 +45,10 @@ export interface Round {
   differential: number | null;
 }
 
+export type FairwayMissDirection = "left" | "right" | null;
+
+export type GirMissDirection = "left" | "right" | "short" | "long" | null;
+
 export interface HoleScore {
   id: number;
   round_id: number;
@@ -54,6 +58,10 @@ export interface HoleScore {
   fairway_hit: number | null;
   green_in_regulation: number | null;
   penalty_strokes: number | null;
+  fairway_miss_direction: FairwayMissDirection;
+  gir_miss_direction: GirMissDirection;
+  hit_from_sand: number;
+  sand_save: number | null;
 }
 
 export interface HandicapSnapshot {

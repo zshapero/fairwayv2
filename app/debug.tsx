@@ -12,6 +12,7 @@ import {
   strokesReceivedOnHole,
 } from "@/core/handicap";
 import { GolfCourseApiError, hasApiKey, searchClubs } from "@/services/golfCourseApi";
+import { generateSampleRound } from "@/services/sampleRound";
 
 interface Status {
   connected: boolean;
@@ -53,6 +54,7 @@ export default function DebugScreen() {
   const [handicapResult, setHandicapResult] = useState<string | null>(null);
   const [apiResult, setApiResult] = useState<string | null>(null);
   const [apiTesting, setApiTesting] = useState(false);
+  const [sampleResult, setSampleResult] = useState<string | null>(null);
   const apiKeyPresent = hasApiKey();
 
   const refresh = useCallback(async () => {
@@ -121,6 +123,25 @@ export default function DebugScreen() {
     setHandicapResult(`AGS=${ags}, differential=${diff}, course handicap (12.5 idx)=${ch14}`);
   }, []);
 
+  const handleGenerateSample = useCallback(async () => {
+    setBusy(true);
+    setSampleResult(null);
+    try {
+      const result = await generateSampleRound();
+      setSampleResult(
+        `Generated round at ${result.courseName} (${result.teeName}) — gross ${result.grossScore}.`,
+      );
+      await refresh();
+    } catch (err) {
+      Alert.alert(
+        "Sample round failed",
+        err instanceof Error ? err.message : String(err),
+      );
+    } finally {
+      setBusy(false);
+    }
+  }, [refresh]);
+
   const handleTestApi = useCallback(async () => {
     setApiTesting(true);
     setApiResult(null);
@@ -187,7 +208,18 @@ export default function DebugScreen() {
             destructive
           />
           <DebugButton label="Run handicap test" disabled={busy} onPress={handleRunHandicapTest} />
+          <DebugButton
+            label="Generate sample round"
+            disabled={busy}
+            onPress={handleGenerateSample}
+          />
         </View>
+
+        {sampleResult ? (
+          <View className="rounded-lg bg-fairway-50 p-3">
+            <Text className="text-sm text-fairway-700">{sampleResult}</Text>
+          </View>
+        ) : null}
 
         {handicapResult ? (
           <View className="rounded-lg bg-fairway-50 p-3">

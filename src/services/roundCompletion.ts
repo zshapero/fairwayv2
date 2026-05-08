@@ -27,16 +27,21 @@ export async function saveCompletedRound(input: SummaryInput): Promise<SummaryRe
   const summary = computeRoundSummary(input);
 
   const db = await getDatabase();
+  const parsByHole = new Map(input.teeHoles.map((h) => [h.hole_number, h.par]));
   await db.withTransactionAsync(async () => {
     for (const entry of input.perHole as readonly PerHoleEntry[]) {
       await holeScoresRepo.upsertHoleScore({
         round_id: input.roundId,
         hole_number: entry.hole_number,
         gross_score: entry.gross_score,
+        par: parsByHole.get(entry.hole_number) ?? 4,
         putts: entry.putts,
         fairway_hit: entry.fairway_hit,
         green_in_regulation: entry.green_in_regulation,
         penalty_strokes: entry.penalty_strokes,
+        fairway_miss_direction: entry.fairway_miss_direction,
+        gir_miss_direction: entry.gir_miss_direction,
+        hit_from_sand: entry.hit_from_sand,
       });
     }
     await roundsRepo.completeRound(input.roundId, summary.scoreDifferential);

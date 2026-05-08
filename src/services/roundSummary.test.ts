@@ -40,6 +40,9 @@ describe("computeRoundSummary", () => {
         fairway_hit: null,
         green_in_regulation: null,
         penalty_strokes: null,
+        fairway_miss_direction: null,
+        gir_miss_direction: null,
+        hit_from_sand: 0,
       })),
       priorDifferentials: [],
     });
@@ -70,6 +73,9 @@ describe("computeRoundSummary", () => {
         fairway_hit: null,
         green_in_regulation: null,
         penalty_strokes: null,
+        fairway_miss_direction: null,
+        gir_miss_direction: null,
+        hit_from_sand: 0,
       })),
       priorDifferentials: [],
     });
@@ -93,6 +99,9 @@ describe("computeRoundSummary", () => {
         fairway_hit: null,
         green_in_regulation: null,
         penalty_strokes: null,
+        fairway_miss_direction: null,
+        gir_miss_direction: null,
+        hit_from_sand: 0,
       })),
       priorDifferentials: [20, 22],
     });

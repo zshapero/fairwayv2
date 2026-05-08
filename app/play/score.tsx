@@ -14,7 +14,14 @@ import * as holeScoresRepo from "@/core/db/repositories/holeScores";
 import * as roundsRepo from "@/core/db/repositories/rounds";
 import * as teeHolesRepo from "@/core/db/repositories/teeHoles";
 import * as teesRepo from "@/core/db/repositories/tees";
-import type { HoleScore, Round, Tee, TeeHole } from "@/core/db/types";
+import type {
+  FairwayMissDirection,
+  GirMissDirection,
+  HoleScore,
+  Round,
+  Tee,
+  TeeHole,
+} from "@/core/db/types";
 
 interface HoleEntry {
   gross_score: number;
@@ -22,7 +29,13 @@ interface HoleEntry {
   fairway_hit: number | null;
   green_in_regulation: number | null;
   penalty_strokes: number | null;
+  fairway_miss_direction: FairwayMissDirection;
+  gir_miss_direction: GirMissDirection;
+  hit_from_sand: number;
 }
+
+type FairwayState = "hit" | "left" | "right" | null;
+type GirState = "hit" | "left" | "right" | "short" | "long" | null;
 
 function defaultEntry(par: number): HoleEntry {
   return {
@@ -31,6 +44,9 @@ function defaultEntry(par: number): HoleEntry {
     fairway_hit: null,
     green_in_regulation: null,
     penalty_strokes: null,
+    fairway_miss_direction: null,
+    gir_miss_direction: null,
+    hit_from_sand: 0,
   };
 }
 
@@ -41,7 +57,51 @@ function entryFromRow(row: HoleScore): HoleEntry {
     fairway_hit: row.fairway_hit,
     green_in_regulation: row.green_in_regulation,
     penalty_strokes: row.penalty_strokes,
+    fairway_miss_direction: row.fairway_miss_direction,
+    gir_miss_direction: row.gir_miss_direction,
+    hit_from_sand: row.hit_from_sand ?? 0,
   };
+}
+
+function fairwayStateOf(entry: HoleEntry): FairwayState {
+  if (entry.fairway_hit === 1) return "hit";
+  if (entry.fairway_miss_direction === "left") return "left";
+  if (entry.fairway_miss_direction === "right") return "right";
+  return null;
+}
+
+function applyFairwayState(state: FairwayState): Pick<HoleEntry, "fairway_hit" | "fairway_miss_direction"> {
+  switch (state) {
+    case "hit":
+      return { fairway_hit: 1, fairway_miss_direction: null };
+    case "left":
+      return { fairway_hit: 0, fairway_miss_direction: "left" };
+    case "right":
+      return { fairway_hit: 0, fairway_miss_direction: "right" };
+    default:
+      return { fairway_hit: null, fairway_miss_direction: null };
+  }
+}
+
+function girStateOf(entry: HoleEntry): GirState {
+  if (entry.green_in_regulation === 1) return "hit";
+  const dir = entry.gir_miss_direction;
+  if (dir === "left" || dir === "right" || dir === "short" || dir === "long") return dir;
+  return null;
+}
+
+function applyGirState(state: GirState): Pick<HoleEntry, "green_in_regulation" | "gir_miss_direction"> {
+  switch (state) {
+    case "hit":
+      return { green_in_regulation: 1, gir_miss_direction: null };
+    case "left":
+    case "right":
+    case "short":
+    case "long":
+      return { green_in_regulation: 0, gir_miss_direction: state };
+    default:
+      return { green_in_regulation: null, gir_miss_direction: null };
+  }
 }
 
 export default function ScoreScreen() {
@@ -56,14 +116,13 @@ export default function ScoreScreen() {
   const [holeIndex, setHoleIndex] = useState(0);
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
+  const [detailsExpanded, setDetailsExpanded] = useState(true);
 
   useEffect(() => {
     let cancelled = false;
     (async () => {
       try {
-        if (!Number.isFinite(roundId)) {
-          throw new Error("Missing roundId");
-        }
+        if (!Number.isFinite(roundId)) throw new Error("Missing roundId");
         const r = await roundsRepo.getRound(roundId);
         if (!r) throw new Error(`Round ${roundId} not found`);
         const teesList = await teesRepo.listTeesForCourse(r.course_id);
@@ -86,7 +145,6 @@ export default function ScoreScreen() {
         setTee(t);
         setTeeHoles(sortedHoles);
         setEntries(initial);
-        // Resume on the first hole that hasn't been recorded yet.
         const nextHoleIdx = sortedHoles.findIndex(
           (hole) => !existing.find((row) => row.hole_number === hole.hole_number),
         );
@@ -136,10 +194,14 @@ export default function ScoreScreen() {
       round_id: roundId,
       hole_number: currentHole.hole_number,
       gross_score: currentEntry.gross_score,
+      par: currentHole.par,
       putts: currentEntry.putts,
       fairway_hit: currentEntry.fairway_hit,
       green_in_regulation: currentEntry.green_in_regulation,
       penalty_strokes: currentEntry.penalty_strokes,
+      fairway_miss_direction: currentEntry.fairway_miss_direction,
+      gir_miss_direction: currentEntry.gir_miss_direction,
+      hit_from_sand: currentEntry.hit_from_sand,
     });
   }, [currentEntry, currentHole, roundId]);
 
@@ -213,11 +275,11 @@ export default function ScoreScreen() {
   const currentTotalPar = totals.par + currentHole.par;
   const relative = currentTotal - currentTotalPar;
   const par = currentHole.par;
-  const allowFairwayToggle = par >= 4;
+  const isPar4Or5 = par >= 4;
 
   return (
     <SafeAreaView className="flex-1 bg-white">
-      <ScrollView contentContainerClassName="p-6 gap-5">
+      <ScrollView contentContainerClassName="p-6 gap-5 pb-10">
         <View className="flex-row items-center justify-between">
           <Text className="text-sm text-gray-600">
             Total {currentTotal} · {relative === 0 ? "E" : relative > 0 ? `+${relative}` : relative}
@@ -263,32 +325,75 @@ export default function ScoreScreen() {
           </View>
         </View>
 
-        <OptionalNumber
-          label="Putts"
-          value={currentEntry.putts}
-          min={0}
-          max={10}
-          onChange={(v) => updateEntry(currentHole.hole_number, { putts: v })}
-        />
-        {allowFairwayToggle ? (
-          <OptionalToggle
-            label="Fairway hit"
-            value={currentEntry.fairway_hit}
-            onChange={(v) => updateEntry(currentHole.hole_number, { fairway_hit: v })}
-          />
+        <Pressable
+          onPress={() => setDetailsExpanded((v) => !v)}
+          className="flex-row items-center justify-between rounded-xl border border-gray-200 p-3"
+        >
+          <Text className="text-base font-semibold text-gray-800">Hole details</Text>
+          <Text className="text-sm text-fairway-700">{detailsExpanded ? "Hide" : "Show"}</Text>
+        </Pressable>
+
+        {detailsExpanded ? (
+          <View className="gap-4">
+            {isPar4Or5 ? (
+              <PillRow
+                label="Fairway"
+                options={[
+                  { value: "hit", label: "Hit", tone: "good" },
+                  { value: "left", label: "Missed Left", tone: "miss" },
+                  { value: "right", label: "Missed Right", tone: "miss" },
+                ]}
+                selected={fairwayStateOf(currentEntry)}
+                onSelect={(next) =>
+                  updateEntry(currentHole.hole_number, applyFairwayState(next))
+                }
+              />
+            ) : null}
+
+            <PillRow
+              label="Green in regulation"
+              options={[
+                { value: "hit", label: "Hit", tone: "good" },
+                { value: "left", label: "Left", tone: "miss" },
+                { value: "right", label: "Right", tone: "miss" },
+                { value: "short", label: "Short", tone: "miss" },
+                { value: "long", label: "Long", tone: "miss" },
+              ]}
+              selected={girStateOf(currentEntry)}
+              onSelect={(next) =>
+                updateEntry(currentHole.hole_number, applyGirState(next))
+              }
+            />
+
+            <PillRow
+              label="Sand"
+              options={[
+                { value: "no", label: "No sand", tone: "neutral" },
+                { value: "yes", label: "Yes", tone: "sand" },
+              ]}
+              selected={currentEntry.hit_from_sand === 1 ? "yes" : "no"}
+              onSelect={(next) =>
+                updateEntry(currentHole.hole_number, { hit_from_sand: next === "yes" ? 1 : 0 })
+              }
+              alwaysSelected
+            />
+
+            <OptionalNumber
+              label="Putts"
+              value={currentEntry.putts}
+              min={0}
+              max={10}
+              onChange={(v) => updateEntry(currentHole.hole_number, { putts: v })}
+            />
+            <OptionalNumber
+              label="Penalty strokes"
+              value={currentEntry.penalty_strokes}
+              min={0}
+              max={10}
+              onChange={(v) => updateEntry(currentHole.hole_number, { penalty_strokes: v })}
+            />
+          </View>
         ) : null}
-        <OptionalToggle
-          label="Green in regulation"
-          value={currentEntry.green_in_regulation}
-          onChange={(v) => updateEntry(currentHole.hole_number, { green_in_regulation: v })}
-        />
-        <OptionalNumber
-          label="Penalty strokes"
-          value={currentEntry.penalty_strokes}
-          min={0}
-          max={10}
-          onChange={(v) => updateEntry(currentHole.hole_number, { penalty_strokes: v })}
-        />
 
         <View className="flex-row items-center gap-3">
           <Pressable
@@ -360,51 +465,71 @@ function OptionalNumber({ label, value, min, max, onChange }: OptionalNumberProp
   );
 }
 
-interface OptionalToggleProps {
+type PillTone = "good" | "miss" | "neutral" | "sand";
+
+interface PillOption<T extends string> {
+  value: T;
   label: string;
-  value: number | null;
-  onChange: (next: number | null) => void;
+  tone: PillTone;
 }
 
-function OptionalToggle({ label, value, onChange }: OptionalToggleProps) {
-  const enabled = value !== null;
+interface PillRowProps<T extends string> {
+  label: string;
+  options: ReadonlyArray<PillOption<T>>;
+  selected: T | null;
+  onSelect: (next: T | null) => void;
+  /** When true, tapping the selected pill keeps it selected (no toggle-off). */
+  alwaysSelected?: boolean;
+}
+
+function pillClasses(tone: PillTone, selected: boolean): string {
+  if (!selected) return "bg-gray-100";
+  switch (tone) {
+    case "good":
+      return "bg-green-500";
+    case "miss":
+      return "bg-orange-500";
+    case "sand":
+      // Sand-colored chip; #d4b886 in tailwind is closest to amber-300/yellow-300.
+      return "bg-amber-300";
+    case "neutral":
+      return "bg-gray-400";
+  }
+}
+
+function PillRow<T extends string>({
+  label,
+  options,
+  selected,
+  onSelect,
+  alwaysSelected,
+}: PillRowProps<T>) {
   return (
     <View className="rounded-xl border border-gray-200 p-3">
-      <View className="flex-row items-center justify-between">
-        <Text className="text-base text-gray-800">{label}</Text>
-        <Pressable
-          onPress={() => onChange(enabled ? null : 0)}
-          className={`rounded-md px-3 py-1 ${enabled ? "bg-fairway-500" : "bg-gray-200"}`}
-        >
-          <Text className={`text-xs font-semibold ${enabled ? "text-white" : "text-gray-700"}`}>
-            {enabled ? "Track" : "Off"}
-          </Text>
-        </Pressable>
+      <Text className="mb-2 text-sm font-semibold text-gray-800">{label}</Text>
+      <View className="flex-row flex-wrap gap-2">
+        {options.map((opt) => {
+          const isSelected = selected === opt.value;
+          const onPress = () => {
+            if (isSelected && !alwaysSelected) {
+              onSelect(null);
+            } else {
+              onSelect(opt.value);
+            }
+          };
+          const textColor =
+            isSelected && opt.tone !== "sand" ? "text-white" : "text-gray-800";
+          return (
+            <Pressable
+              key={opt.value}
+              onPress={onPress}
+              className={`rounded-full px-4 py-2 ${pillClasses(opt.tone, isSelected)}`}
+            >
+              <Text className={`text-sm font-semibold ${textColor}`}>{opt.label}</Text>
+            </Pressable>
+          );
+        })}
       </View>
-      {enabled ? (
-        <View className="mt-3 flex-row gap-2">
-          <Pressable
-            onPress={() => onChange(1)}
-            className={`flex-1 rounded-md px-3 py-2 ${value === 1 ? "bg-fairway-500" : "bg-gray-100"}`}
-          >
-            <Text
-              className={`text-center text-sm font-semibold ${value === 1 ? "text-white" : "text-gray-700"}`}
-            >
-              Yes
-            </Text>
-          </Pressable>
-          <Pressable
-            onPress={() => onChange(0)}
-            className={`flex-1 rounded-md px-3 py-2 ${value === 0 ? "bg-gray-700" : "bg-gray-100"}`}
-          >
-            <Text
-              className={`text-center text-sm font-semibold ${value === 0 ? "text-white" : "text-gray-700"}`}
-            >
-              No
-            </Text>
-          </Pressable>
-        </View>
-      ) : null}
     </View>
   );
 }

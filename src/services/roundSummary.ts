@@ -5,7 +5,11 @@ import {
   scoreDifferential,
   strokesReceivedOnHole,
 } from "@/core/handicap";
-import type { TeeHole } from "@/core/db/types";
+import type {
+  FairwayMissDirection,
+  GirMissDirection,
+  TeeHole,
+} from "@/core/db/types";
 
 export interface PerHoleEntry {
   hole_number: number;
@@ -14,6 +18,9 @@ export interface PerHoleEntry {
   fairway_hit: number | null;
   green_in_regulation: number | null;
   penalty_strokes: number | null;
+  fairway_miss_direction: FairwayMissDirection;
+  gir_miss_direction: GirMissDirection;
+  hit_from_sand: number;
 }
 
 export interface SummaryInput {
