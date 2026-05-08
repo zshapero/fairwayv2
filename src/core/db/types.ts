@@ -11,6 +11,7 @@ export interface Course {
   city: string | null;
   state: string | null;
   par: number;
+  external_id: string | null;
 }
 
 export interface Tee {

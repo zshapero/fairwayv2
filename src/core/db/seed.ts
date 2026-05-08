@@ -127,7 +127,7 @@ export async function seedDemoData(): Promise<{ courses: number; tees: number; t
   await db.withTransactionAsync(async () => {
     for (const course of DEMO_COURSES) {
       const courseResult = await db.runAsync(
-        "INSERT INTO courses (name, city, state, par) VALUES (?, ?, ?, ?);",
+        "INSERT INTO courses (name, city, state, par, external_id) VALUES (?, ?, ?, ?, NULL);",
         course.name,
         course.city,
         course.state,

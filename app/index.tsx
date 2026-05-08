@@ -7,7 +7,10 @@ export default function HomeScreen() {
       <View className="flex-1 items-center justify-center">
         <Text className="text-5xl font-bold text-fairway-700">Fairway</Text>
       </View>
-      <View className="items-center pb-8">
+      <View className="items-center pb-8 gap-2">
+        <Link href="/search" className="text-base font-semibold text-fairway-700 underline">
+          Search Courses
+        </Link>
         <Link href="/debug" className="text-sm text-fairway-700 underline">
           Debug
         </Link>

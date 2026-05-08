@@ -11,6 +11,7 @@ import {
   scoreDifferential,
   strokesReceivedOnHole,
 } from "@/core/handicap";
+import { GolfCourseApiError, hasApiKey, searchClubs } from "@/services/golfCourseApi";
 
 interface Status {
   connected: boolean;
@@ -50,6 +51,9 @@ export default function DebugScreen() {
   const [status, setStatus] = useState<Status | null>(null);
   const [busy, setBusy] = useState(false);
   const [handicapResult, setHandicapResult] = useState<string | null>(null);
+  const [apiResult, setApiResult] = useState<string | null>(null);
+  const [apiTesting, setApiTesting] = useState(false);
+  const apiKeyPresent = hasApiKey();
 
   const refresh = useCallback(async () => {
     setStatus(await loadStatus());
@@ -117,6 +121,28 @@ export default function DebugScreen() {
     setHandicapResult(`AGS=${ags}, differential=${diff}, course handicap (12.5 idx)=${ch14}`);
   }, []);
 
+  const handleTestApi = useCallback(async () => {
+    setApiTesting(true);
+    setApiResult(null);
+    try {
+      const clubs = await searchClubs("Pebble Beach");
+      const first = clubs[0];
+      setApiResult(
+        `Found ${clubs.length} club(s)${first ? ` — first: ${first.name}` : ""}`,
+      );
+    } catch (err) {
+      const message =
+        err instanceof GolfCourseApiError
+          ? err.message
+          : err instanceof Error
+            ? err.message
+            : String(err);
+      setApiResult(`Error: ${message}`);
+    } finally {
+      setApiTesting(false);
+    }
+  }, []);
+
   const indicatorColor = status?.connected ? "bg-green-500" : "bg-red-500";
 
   return (
@@ -168,6 +194,29 @@ export default function DebugScreen() {
             <Text className="text-sm text-fairway-700">{handicapResult}</Text>
           </View>
         ) : null}
+
+        <View className="rounded-lg border border-gray-200 p-3 gap-2">
+          <Text className="text-base font-semibold">GolfCourseAPI</Text>
+          <View className="flex-row items-center gap-2">
+            <View
+              className={`h-3 w-3 rounded-full ${apiKeyPresent ? "bg-green-500" : "bg-red-500"}`}
+            />
+            <Text className="text-sm">
+              API key {apiKeyPresent ? "present" : "missing"}
+            </Text>
+          </View>
+          <Text className="text-sm text-gray-700">
+            Imported courses: {status?.counts.courses ?? 0}
+          </Text>
+          <DebugButton
+            label={apiTesting ? "Testing…" : "Test API connection"}
+            disabled={apiTesting || !apiKeyPresent}
+            onPress={handleTestApi}
+          />
+          {apiResult ? (
+            <Text className="text-sm text-gray-800">{apiResult}</Text>
+          ) : null}
+        </View>
       </ScrollView>
     </SafeAreaView>
   );
