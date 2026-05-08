@@ -41,6 +41,8 @@ export interface Round {
   played_at: string;
   pcc: number;
   is_nine_hole: number;
+  completed_at: string | null;
+  differential: number | null;
 }
 
 export interface HoleScore {
@@ -51,6 +53,7 @@ export interface HoleScore {
   putts: number | null;
   fairway_hit: number | null;
   green_in_regulation: number | null;
+  penalty_strokes: number | null;
 }
 
 export interface HandicapSnapshot {
