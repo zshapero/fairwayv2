@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { scramblingDeficit } from "../rules";
-import { makeRound } from "./helpers";
+import { makeRound, makeContext } from "./helpers";
 
 function roundWithScrambling(id: number, missesAndSaves: { misses: number; saves: number }) {
   // 18 par-4 holes so the par/save math is uniform across the round.
@@ -35,7 +35,7 @@ describe("scramblingDeficit", () => {
     const rounds = Array.from({ length: 4 }, (_, i) =>
       roundWithScrambling(i + 1, { misses: 12, saves: 1 }),
     );
-    expect(scramblingDeficit(rounds)).toBeNull();
+    expect(scramblingDeficit(makeContext(rounds))).toBeNull();
   });
 
   it("triggers when scrambling rate is below 25%", () => {
@@ -43,7 +43,7 @@ describe("scramblingDeficit", () => {
     const rounds = Array.from({ length: 5 }, (_, i) =>
       roundWithScrambling(i + 1, { misses: 12, saves: 1 }),
     );
-    const result = scramblingDeficit(rounds);
+    const result = scramblingDeficit(makeContext(rounds));
     expect(result).not.toBeNull();
     expect((result?.thresholdValue ?? 1)).toBeLessThan(0.25);
   });
@@ -53,6 +53,6 @@ describe("scramblingDeficit", () => {
     const rounds = Array.from({ length: 5 }, (_, i) =>
       roundWithScrambling(i + 1, { misses: 12, saves: 3 }),
     );
-    expect(scramblingDeficit(rounds)).toBeNull();
+    expect(scramblingDeficit(makeContext(rounds))).toBeNull();
   });
 });

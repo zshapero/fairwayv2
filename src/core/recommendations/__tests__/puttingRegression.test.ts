@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { puttingRegression } from "../rules";
-import { makeRound, makeRounds } from "./helpers";
+import { makeRound, makeRounds, makeContext } from "./helpers";
 
 function roundWithUniformPutts(id: number, putts: number) {
   return makeRound({
@@ -29,13 +29,13 @@ function roundWithUniformPutts(id: number, putts: number) {
 describe("puttingRegression", () => {
   it("returns null when fewer than 15 rounds are available", () => {
     const rounds = makeRounds(14, (i) => ({ id: i + 1 }));
-    expect(puttingRegression(rounds)).toBeNull();
+    expect(puttingRegression(makeContext(rounds))).toBeNull();
   });
 
   it("triggers when last 5 average 1.5+ more putts than the previous 10", () => {
     const previous = Array.from({ length: 10 }, (_, i) => roundWithUniformPutts(i + 1, 30));
     const recent = Array.from({ length: 5 }, (_, i) => roundWithUniformPutts(11 + i, 32));
-    const result = puttingRegression([...previous, ...recent]);
+    const result = puttingRegression(makeContext([...previous, ...recent]));
     expect(result).not.toBeNull();
     expect(result?.thresholdValue).toBeCloseTo(2, 1);
     expect(result?.triggeringRoundIds).toEqual([11, 12, 13, 14, 15]);
@@ -45,6 +45,6 @@ describe("puttingRegression", () => {
     // Recent avg 31, previous avg 30 → delta 1.0 (below threshold).
     const previous = Array.from({ length: 10 }, (_, i) => roundWithUniformPutts(i + 1, 30));
     const recent = Array.from({ length: 5 }, (_, i) => roundWithUniformPutts(11 + i, 31));
-    expect(puttingRegression([...previous, ...recent])).toBeNull();
+    expect(puttingRegression(makeContext([...previous, ...recent]))).toBeNull();
   });
 });

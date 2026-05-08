@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { approachMissPattern } from "../rules";
-import { makeRound } from "./helpers";
+import { makeRound, makeContext } from "./helpers";
 
 function roundWithGirMisses(id: number, mix: { left: number; right: number; short: number; long: number }) {
   const directions: Array<"left" | "right" | "short" | "long" | null> = [];
@@ -32,14 +32,14 @@ describe("approachMissPattern", () => {
     const rounds = Array.from({ length: 7 }, (_, i) =>
       roundWithGirMisses(i + 1, { left: 1, right: 1, short: 6, long: 1 }),
     );
-    expect(approachMissPattern(rounds)).toBeNull();
+    expect(approachMissPattern(makeContext(rounds))).toBeNull();
   });
 
   it("triggers when one direction tops 50% of misses", () => {
     const rounds = Array.from({ length: 8 }, (_, i) =>
       roundWithGirMisses(i + 1, { left: 1, right: 1, short: 6, long: 1 }),
     );
-    const result = approachMissPattern(rounds);
+    const result = approachMissPattern(makeContext(rounds));
     expect(result).not.toBeNull();
     expect(result?.title).toMatch(/short/i);
     expect(result?.thresholdValue).toBeGreaterThan(0.5);
@@ -50,6 +50,6 @@ describe("approachMissPattern", () => {
     const rounds = Array.from({ length: 8 }, (_, i) =>
       roundWithGirMisses(i + 1, { left: 2, right: 2, short: 2, long: 2 }),
     );
-    expect(approachMissPattern(rounds)).toBeNull();
+    expect(approachMissPattern(makeContext(rounds))).toBeNull();
   });
 });

@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { hardestHolesProblem } from "../rules";
-import { makeRound } from "./helpers";
+import { makeRound, makeContext } from "./helpers";
 
 function roundWithHardHoleScore(id: number, hardScore: number) {
   return makeRound({
@@ -13,13 +13,13 @@ function roundWithHardHoleScore(id: number, hardScore: number) {
 describe("hardestHolesProblem", () => {
   it("returns null with fewer than 5 rounds", () => {
     const rounds = Array.from({ length: 4 }, (_, i) => roundWithHardHoleScore(i + 1, 7));
-    expect(hardestHolesProblem(rounds)).toBeNull();
+    expect(hardestHolesProblem(makeContext(rounds))).toBeNull();
   });
 
   it("triggers when stroke-index 1-6 holes average bogey + 1 or worse", () => {
     // Set HSI 1-6 holes (hole_numbers 2,4,5,7,12,17 in DEFAULT_INDEXES) to par + 2.
     const rounds = Array.from({ length: 5 }, (_, i) => roundWithHardHoleScore(i + 1, 7));
-    const result = hardestHolesProblem(rounds);
+    const result = hardestHolesProblem(makeContext(rounds));
     expect(result).not.toBeNull();
     expect(result?.thresholdValue).toBeGreaterThanOrEqual(2);
   });
@@ -27,6 +27,6 @@ describe("hardestHolesProblem", () => {
   it("does not trigger when hard holes only average bogey (boundary)", () => {
     // Hardest holes scoring par + 1 → average +1 < threshold of +2.
     const rounds = Array.from({ length: 5 }, (_, i) => roundWithHardHoleScore(i + 1, 5));
-    expect(hardestHolesProblem(rounds)).toBeNull();
+    expect(hardestHolesProblem(makeContext(rounds))).toBeNull();
   });
 });
