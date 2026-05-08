@@ -1,19 +1,26 @@
-import { Link, useFocusEffect } from "expo-router";
+import { useFocusEffect } from "expo-router";
 import { useCallback, useMemo, useState } from "react";
-import {
-  ActivityIndicator,
-  Alert,
-  Pressable,
-  SafeAreaView,
-  ScrollView,
-  Text,
-  View,
-} from "react-native";
+import { ActivityIndicator, Alert, Pressable, View } from "react-native";
 
 import * as drillLogRepo from "@/core/db/repositories/drillLog";
 import * as recommendationsRepo from "@/core/db/repositories/recommendations";
 import type { ConfidenceLevel, Recommendation } from "@/core/db/types";
 import { getCurrentPlayer } from "@/services/currentPlayer";
+import {
+  Body,
+  Button,
+  Card,
+  Caption,
+  EmptyState,
+  GlassCard,
+  Heading,
+  Micro,
+  Pill,
+  Screen,
+  Section,
+  Title,
+} from "@/components";
+import { colors, spacing } from "@/design/tokens";
 
 const TOP_OPPORTUNITIES = 3;
 
@@ -67,7 +74,7 @@ export default function RecommendationsScreen() {
   const handleDismiss = useCallback((rec: Recommendation) => {
     Alert.alert(
       "Dismiss this recommendation?",
-      "We'll stop showing it unless the pattern keeps showing up in future rounds.",
+      "We'll stop showing it unless the pattern keeps showing up.",
       [
         { text: "Cancel", style: "cancel" },
         {
@@ -108,118 +115,102 @@ export default function RecommendationsScreen() {
   );
 
   return (
-    <SafeAreaView className="flex-1 bg-fairway-50">
-      <ScrollView contentContainerClassName="p-5 gap-4 pb-10">
-        <View className="flex-row items-center justify-between">
-          <Text className="text-2xl font-bold text-fairway-700">Recommendations</Text>
-          <Link href="/" className="text-sm text-fairway-700 underline">
-            Home
-          </Link>
+    <Screen>
+      <Title color="primary">Recommendations</Title>
+
+      {error ? (
+        <Card>
+          <Caption color="primary">{error}</Caption>
+        </Card>
+      ) : null}
+
+      {items === null ? (
+        <View style={{ alignItems: "center", paddingTop: spacing.xl }}>
+          <ActivityIndicator color={colors.primary} />
         </View>
+      ) : null}
 
-        {error ? (
-          <View className="rounded-lg border border-red-200 bg-red-50 p-3">
-            <Text className="text-sm text-red-700">{error}</Text>
-          </View>
-        ) : null}
+      {items && items.length === 0 && !error ? (
+        <EmptyState
+          title="No patterns yet"
+          description="Post 5 to 10 rounds and we'll spot patterns and strengths in your game."
+        />
+      ) : null}
 
-        {items === null ? (
-          <View className="items-center py-8">
-            <ActivityIndicator />
-          </View>
-        ) : null}
+      {sections && sections.positives.length > 0 ? (
+        <Section label="WHAT'S WORKING">
+          {sections.positives.map((rec) => (
+            <PositiveCard
+              key={rec.id}
+              rec={rec}
+              expanded={expanded === rec.id}
+              onToggle={() => setExpanded((id) => (id === rec.id ? null : rec.id))}
+              onDismiss={() => handleDismiss(rec)}
+            />
+          ))}
+        </Section>
+      ) : null}
 
-        {items && items.length === 0 && !error ? (
-          <View className="rounded-2xl bg-white p-5">
-            <Text className="text-base font-semibold text-fairway-700">
-              No patterns yet
-            </Text>
-            <Text className="mt-1 text-sm text-gray-700">
-              Post 5 to 10 rounds and we&apos;ll spot patterns and strengths in
-              your game.
-            </Text>
-          </View>
-        ) : null}
+      {sections && sections.topOpportunities.length > 0 ? (
+        <Section label="TOP OPPORTUNITIES">
+          {sections.topOpportunities.map((rec) => (
+            <OpportunityCard
+              key={rec.id}
+              rec={rec}
+              expanded={expanded === rec.id}
+              practiced={practiceFlash === rec.id}
+              onToggle={() => setExpanded((id) => (id === rec.id ? null : rec.id))}
+              onPracticed={() => handlePracticed(rec)}
+              onDismiss={() => handleDismiss(rec)}
+            />
+          ))}
+        </Section>
+      ) : null}
 
-        {sections && sections.positives.length > 0 ? (
-          <View className="gap-2">
-            <Text className="px-1 text-xs uppercase tracking-wide text-green-700">
-              What&apos;s working
-            </Text>
-            {sections.positives.map((rec) => (
-              <PositiveCard
-                key={rec.id}
-                rec={rec}
-                expanded={expanded === rec.id}
-                onToggle={() => setExpanded((id) => (id === rec.id ? null : rec.id))}
-                onDismiss={() => handleDismiss(rec)}
-              />
-            ))}
-          </View>
-        ) : null}
-
-        {sections && sections.topOpportunities.length > 0 ? (
-          <View className="gap-2">
-            <Text className="px-1 text-xs uppercase tracking-wide text-fairway-700/70">
-              Top opportunities
-            </Text>
-            {sections.topOpportunities.map((rec) => (
-              <OpportunityCard
-                key={rec.id}
-                rec={rec}
-                expanded={expanded === rec.id}
-                practiced={practiceFlash === rec.id}
-                onToggle={() => setExpanded((id) => (id === rec.id ? null : rec.id))}
-                onPracticed={() => handlePracticed(rec)}
-                onDismiss={() => handleDismiss(rec)}
-              />
-            ))}
-          </View>
-        ) : null}
-
-        {sections && sections.moreOpportunities.length > 0 ? (
-          <View className="gap-2">
-            <Pressable
-              onPress={() => setShowAllOpportunities((v) => !v)}
-              className="rounded-lg bg-white p-3"
-            >
-              <Text className="text-center text-sm font-semibold text-fairway-700">
-                {showAllOpportunities
-                  ? "Hide other opportunities"
-                  : `Show more opportunities (${sections.moreOpportunities.length})`}
-              </Text>
-            </Pressable>
-            {showAllOpportunities
-              ? sections.moreOpportunities.map((rec) => (
-                  <OpportunityCard
-                    key={rec.id}
-                    rec={rec}
-                    expanded={expanded === rec.id}
-                    practiced={practiceFlash === rec.id}
-                    onToggle={() => setExpanded((id) => (id === rec.id ? null : rec.id))}
-                    onPracticed={() => handlePracticed(rec)}
-                    onDismiss={() => handleDismiss(rec)}
-                  />
-                ))
-              : null}
-          </View>
-        ) : null}
-      </ScrollView>
-    </SafeAreaView>
+      {sections && sections.moreOpportunities.length > 0 ? (
+        <View style={{ gap: spacing.sm }}>
+          <Pressable
+            onPress={() => setShowAllOpportunities((v) => !v)}
+            style={{
+              backgroundColor: colors.surfaceElevated,
+              borderRadius: 14,
+              paddingVertical: spacing.sm,
+              paddingHorizontal: spacing.md,
+              alignItems: "center",
+            }}
+          >
+            <Caption color="primary">
+              {showAllOpportunities
+                ? "Hide other opportunities"
+                : `Show more opportunities (${sections.moreOpportunities.length})`}
+            </Caption>
+          </Pressable>
+          {showAllOpportunities
+            ? sections.moreOpportunities.map((rec) => (
+                <OpportunityCard
+                  key={rec.id}
+                  rec={rec}
+                  expanded={expanded === rec.id}
+                  practiced={practiceFlash === rec.id}
+                  onToggle={() => setExpanded((id) => (id === rec.id ? null : rec.id))}
+                  onPracticed={() => handlePracticed(rec)}
+                  onDismiss={() => handleDismiss(rec)}
+                />
+              ))
+            : null}
+        </View>
+      ) : null}
+    </Screen>
   );
 }
 
-function ConfidenceBadge({ level }: { level: ConfidenceLevel }) {
-  const styles: Record<ConfidenceLevel, { bg: string; text: string; label: string }> = {
-    high: { bg: "bg-green-600", text: "text-white", label: "High confidence" },
-    moderate: { bg: "bg-amber-500", text: "text-white", label: "Moderate confidence" },
-    emerging: { bg: "border border-gray-400", text: "text-gray-700", label: "Emerging" },
-  };
-  const s = styles[level];
+function ConfidencePill({ level }: { level: ConfidenceLevel }) {
+  if (level === "high") return <Pill variant="positive">High confidence</Pill>;
+  if (level === "moderate") return <Pill variant="attention">Moderate</Pill>;
   return (
-    <View className={`self-start rounded-full px-2 py-0.5 ${s.bg}`}>
-      <Text className={`text-xs font-semibold ${s.text}`}>{s.label}</Text>
-    </View>
+    <Pill variant="neutral" outline>
+      Emerging
+    </Pill>
   );
 }
 
@@ -235,41 +226,39 @@ function PositiveCard({
   onDismiss: () => void;
 }) {
   return (
-    <Pressable
-      onPress={onToggle}
-      className="rounded-2xl border border-green-300 bg-white p-4"
-      style={{ elevation: 2 }}
-    >
-      <View className="flex-row items-start justify-between gap-3">
-        <View className="flex-1">
-          <Text className="text-base font-bold text-green-700">{rec.title}</Text>
-          <Text className="mt-1 text-sm text-gray-700">{rec.summary}</Text>
-        </View>
-        <Text className="text-sm text-green-700">{expanded ? "Hide" : "Why"}</Text>
-      </View>
-      {expanded ? (
-        <View className="mt-3 gap-2">
-          <View className="rounded-lg bg-green-50 p-3">
-            <Text className="text-xs uppercase tracking-wide text-green-800">The math</Text>
-            <Text className="mt-1 text-sm text-gray-800">{rec.detail}</Text>
-          </View>
-          {rec.drill ? (
-            <View className="rounded-lg bg-fairway-50 p-3">
-              <Text className="text-xs uppercase tracking-wide text-fairway-700/80">
-                Keep going
-              </Text>
-              <Text className="mt-1 text-sm text-gray-800">{rec.drill}</Text>
+    <Card accent onPress={onToggle}>
+      <View style={{ gap: spacing.sm }}>
+        <Heading color="positive">{rec.title}</Heading>
+        <Body color="textMuted">{rec.summary}</Body>
+        {expanded ? (
+          <View style={{ gap: spacing.sm, marginTop: spacing.xs }}>
+            <View
+              style={{
+                backgroundColor: colors.surfaceDeep,
+                borderRadius: 14,
+                padding: spacing.md,
+              }}
+            >
+              <Micro color="accent">THE MATH</Micro>
+              <Body style={{ marginTop: 4 }}>{rec.detail}</Body>
             </View>
-          ) : null}
-          <Pressable
-            onPress={onDismiss}
-            className="self-start rounded-md border border-gray-300 bg-white px-3 py-2"
-          >
-            <Text className="text-xs font-semibold text-gray-700">Dismiss</Text>
-          </Pressable>
-        </View>
-      ) : null}
-    </Pressable>
+            {rec.drill ? (
+              <View
+                style={{ backgroundColor: colors.surfaceDeep, borderRadius: 14, padding: spacing.md }}
+              >
+                <Micro color="accent">KEEP GOING</Micro>
+                <Body style={{ marginTop: 4 }}>{rec.drill}</Body>
+              </View>
+            ) : null}
+            <View style={{ alignItems: "flex-start" }}>
+              <Button variant="ghost" onPress={onDismiss}>
+                Dismiss
+              </Button>
+            </View>
+          </View>
+        ) : null}
+      </View>
+    </Card>
   );
 }
 
@@ -289,49 +278,48 @@ function OpportunityCard({
   onDismiss: () => void;
 }) {
   return (
-    <Pressable
-      onPress={onToggle}
-      className="rounded-2xl bg-white p-4"
-      style={{ elevation: 2 }}
-    >
-      <View className="flex-row items-start justify-between gap-3">
-        <View className="flex-1 gap-1">
-          <Text className="text-base font-bold text-gray-900">{rec.title}</Text>
-          <ConfidenceBadge level={rec.confidence} />
-          <Text className="mt-1 text-sm text-gray-700">{rec.summary}</Text>
-        </View>
-        <Text className="text-sm text-fairway-700">{expanded ? "Hide" : "Why"}</Text>
-      </View>
-      {expanded ? (
-        <View className="mt-3 gap-2">
-          <View className="rounded-lg bg-gray-50 p-3">
-            <Text className="text-xs uppercase tracking-wide text-gray-500">The math</Text>
-            <Text className="mt-1 text-sm text-gray-800">{rec.detail}</Text>
-          </View>
-          {rec.drill ? (
-            <View className="rounded-lg bg-fairway-50 p-3">
-              <Text className="text-xs uppercase tracking-wide text-fairway-700/80">Drill</Text>
-              <Text className="mt-1 text-sm text-gray-800">{rec.drill}</Text>
+    <Pressable onPress={onToggle}>
+      <GlassCard>
+        <View style={{ gap: spacing.sm }}>
+          <Heading>{rec.title}</Heading>
+          <ConfidencePill level={rec.confidence} />
+          <Body color="textMuted">{rec.summary}</Body>
+          {expanded ? (
+            <View style={{ gap: spacing.sm, marginTop: spacing.xs }}>
+              <View
+                style={{
+                  backgroundColor: colors.surfaceDeep,
+                  borderRadius: 14,
+                  padding: spacing.md,
+                }}
+              >
+                <Micro color="accent">THE MATH</Micro>
+                <Body style={{ marginTop: 4 }}>{rec.detail}</Body>
+              </View>
+              {rec.drill ? (
+                <View
+                  style={{
+                    backgroundColor: colors.surfaceDeep,
+                    borderRadius: 14,
+                    padding: spacing.md,
+                  }}
+                >
+                  <Micro color="accent">DRILL</Micro>
+                  <Body style={{ marginTop: 4 }}>{rec.drill}</Body>
+                </View>
+              ) : null}
+              <View style={{ flexDirection: "row", gap: spacing.xs }}>
+                <Button onPress={onPracticed}>
+                  {practiced ? "Logged ✓" : "Practiced today"}
+                </Button>
+                <Button variant="ghost" onPress={onDismiss}>
+                  Dismiss
+                </Button>
+              </View>
             </View>
           ) : null}
-          <View className="flex-row gap-2">
-            <Pressable
-              onPress={onPracticed}
-              className={`rounded-md px-3 py-2 ${practiced ? "bg-green-500" : "bg-fairway-500"}`}
-            >
-              <Text className="text-xs font-semibold text-white">
-                {practiced ? "Logged ✓" : "Practiced today"}
-              </Text>
-            </Pressable>
-            <Pressable
-              onPress={onDismiss}
-              className="rounded-md border border-red-300 bg-red-50 px-3 py-2"
-            >
-              <Text className="text-xs font-semibold text-red-700">Dismiss</Text>
-            </Pressable>
-          </View>
         </View>
-      ) : null}
+      </GlassCard>
     </Pressable>
   );
 }

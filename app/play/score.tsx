@@ -1,14 +1,6 @@
-import { Link, router, useLocalSearchParams } from "expo-router";
+import { router, useLocalSearchParams } from "expo-router";
 import { useCallback, useEffect, useMemo, useState } from "react";
-import {
-  ActivityIndicator,
-  Alert,
-  Pressable,
-  SafeAreaView,
-  ScrollView,
-  Text,
-  View,
-} from "react-native";
+import { ActivityIndicator, Alert, Pressable, View } from "react-native";
 
 import * as holeScoresRepo from "@/core/db/repositories/holeScores";
 import * as roundsRepo from "@/core/db/repositories/rounds";
@@ -22,6 +14,19 @@ import type {
   Tee,
   TeeHole,
 } from "@/core/db/types";
+import {
+  Body,
+  Button,
+  Card,
+  Caption,
+  Display,
+  GlassCard,
+  Heading,
+  Micro,
+  Screen,
+  Title,
+} from "@/components";
+import { colors, radii, spacing, typography } from "@/design/tokens";
 
 interface HoleEntry {
   gross_score: number;
@@ -164,8 +169,7 @@ export default function ScoreScreen() {
 
   const totals = useMemo(() => {
     if (!teeHoles) return { strokes: 0, par: 0 };
-    let strokes = 0;
-    let par = 0;
+    let strokes = 0, par = 0;
     for (let i = 0; i < holeIndex; i++) {
       const hole = teeHoles[i];
       if (!hole) continue;
@@ -177,16 +181,13 @@ export default function ScoreScreen() {
     return { strokes, par };
   }, [teeHoles, entries, holeIndex]);
 
-  const updateEntry = useCallback(
-    (holeNumber: number, partial: Partial<HoleEntry>) => {
-      setEntries((prev) => {
-        const existing = prev[holeNumber];
-        if (!existing) return prev;
-        return { ...prev, [holeNumber]: { ...existing, ...partial } };
-      });
-    },
-    [],
-  );
+  const updateEntry = useCallback((holeNumber: number, partial: Partial<HoleEntry>) => {
+    setEntries((prev) => {
+      const existing = prev[holeNumber];
+      if (!existing) return prev;
+      return { ...prev, [holeNumber]: { ...existing, ...partial } };
+    });
+  }, []);
 
   const persistCurrentHole = useCallback(async () => {
     if (!currentHole || !currentEntry) return;
@@ -211,10 +212,7 @@ export default function ScoreScreen() {
     try {
       await persistCurrentHole();
       if (holeIndex >= teeHoles.length - 1) {
-        router.replace({
-          pathname: "/play/summary",
-          params: { roundId: String(roundId) },
-        });
+        router.replace({ pathname: "/play/summary", params: { roundId: String(roundId) } });
       } else {
         setHoleIndex((idx) => idx + 1);
       }
@@ -252,22 +250,22 @@ export default function ScoreScreen() {
 
   if (error) {
     return (
-      <SafeAreaView className="flex-1 bg-white">
-        <View className="p-6 gap-3">
-          <Text className="text-base text-red-700">{error}</Text>
-          <Link href="/" className="text-sm text-fairway-700 underline">
-            Back to home
-          </Link>
-        </View>
-      </SafeAreaView>
+      <Screen>
+        <Body color="primary">{error}</Body>
+        <Button variant="ghost" onPress={() => router.replace("/")}>
+          Back to home
+        </Button>
+      </Screen>
     );
   }
 
   if (!round || !tee || !teeHoles || !currentHole || !currentEntry) {
     return (
-      <SafeAreaView className="flex-1 bg-white items-center justify-center">
-        <ActivityIndicator />
-      </SafeAreaView>
+      <Screen>
+        <View style={{ alignItems: "center", paddingTop: spacing.hero }}>
+          <ActivityIndicator color={colors.primary} />
+        </View>
+      </Screen>
     );
   }
 
@@ -278,31 +276,36 @@ export default function ScoreScreen() {
   const isPar4Or5 = par >= 4;
 
   return (
-    <SafeAreaView className="flex-1 bg-white">
-      <ScrollView contentContainerClassName="p-6 gap-5 pb-10">
-        <View className="flex-row items-center justify-between">
-          <Text className="text-sm text-gray-600">
-            Total {currentTotal} · {relative === 0 ? "E" : relative > 0 ? `+${relative}` : relative}
-          </Text>
-          <Pressable onPress={handleSaveAndExit} disabled={saving}>
-            <Text className="text-sm text-fairway-700 underline">Save and continue later</Text>
-          </Pressable>
-        </View>
+    <Screen>
+      <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center" }}>
+        <Caption>
+          Total {currentTotal} ·{" "}
+          <Caption color="primary">
+            {relative === 0 ? "E" : relative > 0 ? `+${relative}` : relative}
+          </Caption>
+        </Caption>
+        <Pressable onPress={handleSaveAndExit} disabled={saving}>
+          <Caption color="primary">Save and continue later</Caption>
+        </Pressable>
+      </View>
 
-        <View className="items-center gap-1">
-          <Text className="text-sm uppercase tracking-wide text-gray-500">
+      <GlassCard>
+        <View style={{ alignItems: "center", gap: spacing.xs }}>
+          <Micro color="accent">
             Hole {currentHole.hole_number} of {totalHoles}
-          </Text>
-          <Text className="text-6xl font-bold text-fairway-700">{currentHole.hole_number}</Text>
-          <Text className="text-base text-gray-700">
-            Par {par}
-            {currentHole.yardage ? ` · ${currentHole.yardage} yds` : ""} · HCP {currentHole.stroke_index}
-          </Text>
+          </Micro>
+          <Display color="primary">{currentHole.hole_number}</Display>
+          <Heading color="text">Par {par}</Heading>
+          <Caption>
+            {currentHole.yardage ? `${currentHole.yardage} yds · ` : ""}HCP {currentHole.stroke_index}
+          </Caption>
         </View>
+      </GlassCard>
 
-        <View className="items-center gap-3 rounded-xl border border-gray-200 p-4">
-          <Text className="text-sm text-gray-600">Strokes</Text>
-          <View className="flex-row items-center gap-6">
+      <Card>
+        <View style={{ alignItems: "center", gap: spacing.md }}>
+          <Micro>Strokes</Micro>
+          <View style={{ flexDirection: "row", alignItems: "center", gap: spacing.xl }}>
             <StepperButton
               label="−"
               onPress={() =>
@@ -311,9 +314,9 @@ export default function ScoreScreen() {
                 })
               }
             />
-            <Text className="w-16 text-center text-5xl font-bold text-gray-900">
+            <Title color="primary" style={{ fontSize: 64, lineHeight: 72, minWidth: 80, textAlign: "center" }}>
               {currentEntry.gross_score}
-            </Text>
+            </Title>
             <StepperButton
               label="+"
               onPress={() =>
@@ -324,99 +327,97 @@ export default function ScoreScreen() {
             />
           </View>
         </View>
+      </Card>
 
-        <Pressable
-          onPress={() => setDetailsExpanded((v) => !v)}
-          className="flex-row items-center justify-between rounded-xl border border-gray-200 p-3"
-        >
-          <Text className="text-base font-semibold text-gray-800">Hole details</Text>
-          <Text className="text-sm text-fairway-700">{detailsExpanded ? "Hide" : "Show"}</Text>
-        </Pressable>
+      <Pressable
+        onPress={() => setDetailsExpanded((v) => !v)}
+        style={{
+          flexDirection: "row",
+          alignItems: "center",
+          justifyContent: "space-between",
+          padding: spacing.md,
+          borderRadius: radii.sm,
+          backgroundColor: colors.surfaceDeep,
+        }}
+      >
+        <Heading>Hole details</Heading>
+        <Caption color="primary">{detailsExpanded ? "Hide" : "Show"}</Caption>
+      </Pressable>
 
-        {detailsExpanded ? (
-          <View className="gap-4">
-            {isPar4Or5 ? (
-              <PillRow
-                label="Fairway"
-                options={[
-                  { value: "hit", label: "Hit", tone: "good" },
-                  { value: "left", label: "Missed Left", tone: "miss" },
-                  { value: "right", label: "Missed Right", tone: "miss" },
-                ]}
-                selected={fairwayStateOf(currentEntry)}
-                onSelect={(next) =>
-                  updateEntry(currentHole.hole_number, applyFairwayState(next))
-                }
-              />
-            ) : null}
-
+      {detailsExpanded ? (
+        <View style={{ gap: spacing.md }}>
+          {isPar4Or5 ? (
             <PillRow
-              label="Green in regulation"
+              label="Fairway"
               options={[
                 { value: "hit", label: "Hit", tone: "good" },
-                { value: "left", label: "Left", tone: "miss" },
-                { value: "right", label: "Right", tone: "miss" },
-                { value: "short", label: "Short", tone: "miss" },
-                { value: "long", label: "Long", tone: "miss" },
+                { value: "left", label: "Missed Left", tone: "miss" },
+                { value: "right", label: "Missed Right", tone: "miss" },
               ]}
-              selected={girStateOf(currentEntry)}
+              selected={fairwayStateOf(currentEntry)}
               onSelect={(next) =>
-                updateEntry(currentHole.hole_number, applyGirState(next))
+                updateEntry(currentHole.hole_number, applyFairwayState(next))
               }
             />
+          ) : null}
 
-            <PillRow
-              label="Sand"
-              options={[
-                { value: "no", label: "No sand", tone: "neutral" },
-                { value: "yes", label: "Yes", tone: "sand" },
-              ]}
-              selected={currentEntry.hit_from_sand === 1 ? "yes" : "no"}
-              onSelect={(next) =>
-                updateEntry(currentHole.hole_number, { hit_from_sand: next === "yes" ? 1 : 0 })
-              }
-              alwaysSelected
-            />
+          <PillRow
+            label="Green in regulation"
+            options={[
+              { value: "hit", label: "Hit", tone: "good" },
+              { value: "left", label: "Left", tone: "miss" },
+              { value: "right", label: "Right", tone: "miss" },
+              { value: "short", label: "Short", tone: "miss" },
+              { value: "long", label: "Long", tone: "miss" },
+            ]}
+            selected={girStateOf(currentEntry)}
+            onSelect={(next) => updateEntry(currentHole.hole_number, applyGirState(next))}
+          />
 
-            <OptionalNumber
-              label="Putts"
-              value={currentEntry.putts}
-              min={0}
-              max={10}
-              onChange={(v) => updateEntry(currentHole.hole_number, { putts: v })}
-            />
-            <OptionalNumber
-              label="Penalty strokes"
-              value={currentEntry.penalty_strokes}
-              min={0}
-              max={10}
-              onChange={(v) => updateEntry(currentHole.hole_number, { penalty_strokes: v })}
-            />
-          </View>
-        ) : null}
+          <PillRow
+            label="Sand"
+            options={[
+              { value: "no", label: "No sand", tone: "neutral" },
+              { value: "yes", label: "Yes", tone: "sand" },
+            ]}
+            selected={currentEntry.hit_from_sand === 1 ? "yes" : "no"}
+            onSelect={(next) =>
+              updateEntry(currentHole.hole_number, { hit_from_sand: next === "yes" ? 1 : 0 })
+            }
+            alwaysSelected
+          />
 
-        <View className="flex-row items-center gap-3">
-          <Pressable
-            onPress={handlePrev}
-            disabled={saving || holeIndex === 0}
-            className={`flex-1 rounded-lg border border-gray-300 px-4 py-3 ${
-              saving || holeIndex === 0 ? "opacity-50" : ""
-            }`}
-          >
-            <Text className="text-center text-base font-semibold text-gray-700">Back</Text>
-          </Pressable>
-          <Pressable
-            onPress={handleNext}
-            disabled={saving}
-            className={`flex-[2] rounded-lg bg-fairway-500 px-4 py-3 ${saving ? "opacity-50" : ""}`}
-          >
-            <Text className="text-center text-base font-semibold text-white">
-              {holeIndex >= totalHoles - 1 ? "Finish round" : "Next hole"}
-            </Text>
-          </Pressable>
+          <OptionalNumber
+            label="Putts"
+            value={currentEntry.putts}
+            min={0}
+            max={10}
+            onChange={(v) => updateEntry(currentHole.hole_number, { putts: v })}
+          />
+          <OptionalNumber
+            label="Penalty strokes"
+            value={currentEntry.penalty_strokes}
+            min={0}
+            max={10}
+            onChange={(v) => updateEntry(currentHole.hole_number, { penalty_strokes: v })}
+          />
         </View>
-      </ScrollView>
-    </SafeAreaView>
+      ) : null}
+
+      <View style={{ flexDirection: "row", gap: spacing.sm }}>
+        <Button
+          variant="secondary"
+          onPress={handlePrev}
+          disabled={saving || holeIndex === 0}
+          style={{ flex: 1 }}
+        >
+          Back
+        </Button>
+        <Button onPress={handleNext} disabled={saving} style={{ flex: 2 }}>
+          {holeIndex >= totalHoles - 1 ? "Finish round" : "Next hole"}
+        </Button>
+      </View>
+    </Screen>
   );
 }
 
@@ -424,9 +425,18 @@ function StepperButton({ label, onPress }: { label: string; onPress: () => void 
   return (
     <Pressable
       onPress={onPress}
-      className="h-14 w-14 items-center justify-center rounded-full bg-fairway-500"
+      style={{
+        height: 56,
+        width: 56,
+        borderRadius: 28,
+        backgroundColor: colors.primary,
+        alignItems: "center",
+        justifyContent: "center",
+      }}
     >
-      <Text className="text-3xl font-bold text-white">{label}</Text>
+      <Title color="textOnPrimary" style={{ fontSize: 28, lineHeight: 32 }}>
+        {label}
+      </Title>
     </Pressable>
   );
 }
@@ -442,58 +452,96 @@ interface OptionalNumberProps {
 function OptionalNumber({ label, value, min, max, onChange }: OptionalNumberProps) {
   const enabled = value !== null;
   return (
-    <View className="rounded-xl border border-gray-200 p-3">
-      <View className="flex-row items-center justify-between">
-        <Text className="text-base text-gray-800">{label}</Text>
+    <View
+      style={{
+        backgroundColor: colors.surfaceElevated,
+        padding: spacing.md,
+        borderRadius: radii.sm,
+        borderWidth: 1,
+        borderColor: "rgba(0,0,0,0.06)",
+      }}
+    >
+      <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between" }}>
+        <Body>{label}</Body>
         <Pressable
           onPress={() => onChange(enabled ? null : 0)}
-          className={`rounded-md px-3 py-1 ${enabled ? "bg-fairway-500" : "bg-gray-200"}`}
+          style={{
+            paddingHorizontal: spacing.sm,
+            paddingVertical: 4,
+            borderRadius: radii.sm,
+            backgroundColor: enabled ? colors.primary : colors.surfaceDeep,
+          }}
         >
-          <Text className={`text-xs font-semibold ${enabled ? "text-white" : "text-gray-700"}`}>
+          <Micro style={{ color: enabled ? colors.textOnPrimary : colors.textMuted }}>
             {enabled ? "Track" : "Off"}
-          </Text>
+          </Micro>
         </Pressable>
       </View>
       {enabled ? (
-        <View className="mt-3 flex-row items-center gap-4">
-          <StepperSmall label="−" onPress={() => onChange(Math.max(min, (value ?? 0) - 1))} />
-          <Text className="w-12 text-center text-2xl font-semibold text-gray-900">{value}</Text>
-          <StepperSmall label="+" onPress={() => onChange(Math.min(max, (value ?? 0) + 1))} />
+        <View
+          style={{
+            marginTop: spacing.sm,
+            flexDirection: "row",
+            alignItems: "center",
+            gap: spacing.md,
+          }}
+        >
+          <SmallStepper label="−" onPress={() => onChange(Math.max(min, (value ?? 0) - 1))} />
+          <Title color="text" style={{ fontSize: 28, lineHeight: 32, minWidth: 48, textAlign: "center" }}>
+            {value}
+          </Title>
+          <SmallStepper label="+" onPress={() => onChange(Math.min(max, (value ?? 0) + 1))} />
         </View>
       ) : null}
     </View>
   );
 }
 
-type PillTone = "good" | "miss" | "neutral" | "sand";
+function SmallStepper({ label, onPress }: { label: string; onPress: () => void }) {
+  return (
+    <Pressable
+      onPress={onPress}
+      style={{
+        height: 36,
+        width: 36,
+        borderRadius: 18,
+        backgroundColor: colors.primary,
+        alignItems: "center",
+        justifyContent: "center",
+      }}
+    >
+      <Body color="textOnPrimary" style={{ fontFamily: typography.heading.fontFamily }}>
+        {label}
+      </Body>
+    </Pressable>
+  );
+}
 
+type PillTone = "good" | "miss" | "neutral" | "sand";
 interface PillOption<T extends string> {
   value: T;
   label: string;
   tone: PillTone;
 }
-
 interface PillRowProps<T extends string> {
   label: string;
   options: ReadonlyArray<PillOption<T>>;
   selected: T | null;
   onSelect: (next: T | null) => void;
-  /** When true, tapping the selected pill keeps it selected (no toggle-off). */
   alwaysSelected?: boolean;
 }
 
-function pillClasses(tone: PillTone, selected: boolean): string {
-  if (!selected) return "bg-gray-100";
+function pillStyle(tone: PillTone, selected: boolean) {
+  if (!selected) return { bg: colors.surfaceDeep, fg: colors.textMuted };
   switch (tone) {
     case "good":
-      return "bg-green-500";
+      return { bg: colors.primary, fg: colors.textOnPrimary };
     case "miss":
-      return "bg-orange-500";
+      return { bg: colors.accent, fg: "#1A1A1A" };
     case "sand":
-      // Sand-colored chip; #d4b886 in tailwind is closest to amber-300/yellow-300.
-      return "bg-amber-300";
+      return { bg: "#D4B886", fg: "#1A1A1A" };
     case "neutral":
-      return "bg-gray-400";
+      return { bg: colors.text, fg: colors.surface };
   }
 }
 
@@ -505,42 +553,42 @@ function PillRow<T extends string>({
   alwaysSelected,
 }: PillRowProps<T>) {
   return (
-    <View className="rounded-xl border border-gray-200 p-3">
-      <Text className="mb-2 text-sm font-semibold text-gray-800">{label}</Text>
-      <View className="flex-row flex-wrap gap-2">
+    <View
+      style={{
+        backgroundColor: colors.surfaceElevated,
+        padding: spacing.md,
+        borderRadius: radii.sm,
+        borderWidth: 1,
+        borderColor: "rgba(0,0,0,0.06)",
+      }}
+    >
+      <Heading style={{ fontSize: 15, marginBottom: spacing.sm }}>{label}</Heading>
+      <View style={{ flexDirection: "row", flexWrap: "wrap", gap: spacing.xs }}>
         {options.map((opt) => {
           const isSelected = selected === opt.value;
+          const style = pillStyle(opt.tone, isSelected);
           const onPress = () => {
-            if (isSelected && !alwaysSelected) {
-              onSelect(null);
-            } else {
-              onSelect(opt.value);
-            }
+            if (isSelected && !alwaysSelected) onSelect(null);
+            else onSelect(opt.value);
           };
-          const textColor =
-            isSelected && opt.tone !== "sand" ? "text-white" : "text-gray-800";
           return (
             <Pressable
               key={opt.value}
               onPress={onPress}
-              className={`rounded-full px-4 py-2 ${pillClasses(opt.tone, isSelected)}`}
+              style={{
+                paddingHorizontal: spacing.md,
+                paddingVertical: spacing.xs,
+                borderRadius: 999,
+                backgroundColor: style.bg,
+              }}
             >
-              <Text className={`text-sm font-semibold ${textColor}`}>{opt.label}</Text>
+              <Body style={{ color: style.fg, fontFamily: typography.heading.fontFamily, fontSize: 14 }}>
+                {opt.label}
+              </Body>
             </Pressable>
           );
         })}
       </View>
     </View>
-  );
-}
-
-function StepperSmall({ label, onPress }: { label: string; onPress: () => void }) {
-  return (
-    <Pressable
-      onPress={onPress}
-      className="h-9 w-9 items-center justify-center rounded-full bg-fairway-500"
-    >
-      <Text className="text-lg font-bold text-white">{label}</Text>
-    </Pressable>
   );
 }

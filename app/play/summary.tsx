@@ -1,14 +1,6 @@
 import { router, useLocalSearchParams } from "expo-router";
 import { useCallback, useEffect, useMemo, useState } from "react";
-import {
-  ActivityIndicator,
-  Alert,
-  Pressable,
-  SafeAreaView,
-  ScrollView,
-  Text,
-  View,
-} from "react-native";
+import { ActivityIndicator, Alert, View } from "react-native";
 
 import * as holeScoresRepo from "@/core/db/repositories/holeScores";
 import * as roundsRepo from "@/core/db/repositories/rounds";
@@ -24,6 +16,18 @@ import {
 } from "@/services/roundCompletion";
 import { HandicapMovementCard } from "@/components/HandicapMovementCard";
 import { runEngine } from "@/services/recommendationsRunner";
+import {
+  Body,
+  Button,
+  Card,
+  Caption,
+  Heading,
+  Micro,
+  Screen,
+  Section,
+  Title,
+} from "@/components";
+import { colors, spacing } from "@/design/tokens";
 
 export default function SummaryScreen() {
   const params = useLocalSearchParams<{ roundId?: string }>();
@@ -98,11 +102,8 @@ export default function SummaryScreen() {
     try {
       const result = await saveCompletedRound(input);
       setSavedSummary(result);
-      // Recompute recommendations off the critical path so the UI doesn't wait.
       void runEngine(input.playerId).catch((err) => {
-        if (__DEV__) {
-          console.warn("recommendation engine failed", err);
-        }
+        if (__DEV__) console.warn("recommendation engine failed", err);
       });
     } catch (err) {
       Alert.alert("Save failed", err instanceof Error ? err.message : String(err));
@@ -111,106 +112,107 @@ export default function SummaryScreen() {
     }
   }, [input]);
 
+  const handleDiscard = useCallback(() => {
+    Alert.alert(
+      "Discard this round?",
+      "The hole scores will be deleted. Your other rounds and recommendations stay.",
+      [
+        { text: "Cancel", style: "cancel" },
+        {
+          text: "Discard",
+          style: "destructive",
+          onPress: async () => {
+            try {
+              if (Number.isFinite(roundId)) {
+                await roundsRepo.deleteRound(roundId);
+              }
+              router.replace("/");
+            } catch (err) {
+              Alert.alert("Discard failed", err instanceof Error ? err.message : String(err));
+            }
+          },
+        },
+      ],
+    );
+  }, [roundId]);
+
   if (error) {
     return (
-      <SafeAreaView className="flex-1 bg-white">
-        <View className="p-6 gap-3">
-          <Text className="text-base text-red-700">{error}</Text>
-          <Pressable
-            onPress={() => router.replace("/")}
-            className="rounded-lg bg-fairway-500 px-4 py-3"
-          >
-            <Text className="text-center text-base font-semibold text-white">Home</Text>
-          </Pressable>
-        </View>
-      </SafeAreaView>
+      <Screen>
+        <Body color="primary">{error}</Body>
+        <Button onPress={() => router.replace("/")}>Home</Button>
+      </Screen>
     );
   }
 
   if (!input || !projection) {
     return (
-      <SafeAreaView className="flex-1 bg-white items-center justify-center">
-        <ActivityIndicator />
-      </SafeAreaView>
+      <Screen>
+        <View style={{ alignItems: "center", paddingTop: spacing.hero }}>
+          <ActivityIndicator color={colors.primary} />
+        </View>
+      </Screen>
     );
   }
 
   const summary = savedSummary ?? projection;
 
   return (
-    <SafeAreaView className="flex-1 bg-white">
-      <ScrollView contentContainerClassName="p-6 gap-4">
-        <Text className="text-2xl font-bold text-fairway-700">Round summary</Text>
-
-        <SummaryRow label="Gross score" value={summary.grossScore} />
-        <SummaryRow
-          label="Adjusted gross score"
-          value={summary.adjustedGrossScore}
-          hint="Net Double Bogey caps applied"
-        />
-        <SummaryRow label="Score differential" value={summary.scoreDifferential.toFixed(1)} />
-        <SummaryRow label="Course handicap" value={summary.courseHandicap} />
-
+    <Screen>
+      <Section label="ROUND SUMMARY">
         <HandicapMovementCard
           priorDifferentials={input.priorDifferentials}
           newDifferential={summary.scoreDifferential}
           onPress={
             savedSummary
-              ? () => router.push({ pathname: "/rounds/[id]", params: { id: String(input.roundId) } })
+              ? () =>
+                  router.push({ pathname: "/rounds/[id]", params: { id: String(input.roundId) } })
               : undefined
           }
         />
+      </Section>
 
-        {savedSummary ? (
-          <View className="gap-2">
-            <View className="rounded-lg bg-fairway-50 p-3">
-              <Text className="text-sm text-fairway-700">
-                Round saved. Tap the card above for the full breakdown.
-              </Text>
-            </View>
-            <Pressable
-              onPress={() => router.replace("/")}
-              className="rounded-lg bg-fairway-500 px-4 py-3"
-            >
-              <Text className="text-center text-base font-semibold text-white">Done</Text>
-            </Pressable>
+      <Section label="SCORECARD">
+        <Card>
+          <View style={{ flexDirection: "row", justifyContent: "space-between" }}>
+            <Stat label="Gross" value={summary.grossScore} />
+            <Stat label="AGS" value={summary.adjustedGrossScore} />
+            <Stat label="Differential" value={summary.scoreDifferential.toFixed(1)} />
+            <Stat label="Course HCP" value={summary.courseHandicap} />
           </View>
-        ) : (
-          <Pressable
-            onPress={handleSave}
-            disabled={saving}
-            className={`rounded-lg bg-fairway-500 px-4 py-3 ${saving ? "opacity-50" : ""}`}
-          >
-            <Text className="text-center text-base font-semibold text-white">
-              {saving ? "Saving…" : "Save round"}
-            </Text>
-          </Pressable>
-        )}
-      </ScrollView>
-    </SafeAreaView>
+        </Card>
+      </Section>
+
+      {savedSummary ? (
+        <Card>
+          <Caption>Round saved. Tap the card above for the full breakdown.</Caption>
+          <View style={{ marginTop: spacing.md, alignItems: "flex-start" }}>
+            <Button onPress={() => router.replace("/")}>Done</Button>
+          </View>
+        </Card>
+      ) : (
+        <View style={{ flexDirection: "row", gap: spacing.sm }}>
+          <Button variant="secondary" onPress={handleDiscard} style={{ flex: 1 }}>
+            Discard
+          </Button>
+          <Button onPress={handleSave} disabled={saving} style={{ flex: 2 }}>
+            {saving ? "Saving…" : "Save round"}
+          </Button>
+        </View>
+      )}
+    </Screen>
   );
 }
 
-function SummaryRow({
-  label,
-  value,
-  hint,
-  highlight,
-}: {
-  label: string;
-  value: string | number;
-  hint?: string;
-  highlight?: boolean;
-}) {
+function Stat({ label, value }: { label: string; value: string | number }) {
   return (
-    <View
-      className={`rounded-lg border p-3 ${
-        highlight ? "border-fairway-500 bg-fairway-50" : "border-gray-200 bg-white"
-      }`}
-    >
-      <Text className="text-xs uppercase tracking-wide text-gray-500">{label}</Text>
-      <Text className="text-2xl font-bold text-gray-900">{value}</Text>
-      {hint ? <Text className="mt-1 text-xs text-gray-500">{hint}</Text> : null}
+    <View style={{ alignItems: "flex-start", gap: 2 }}>
+      <Micro>{label}</Micro>
+      <Title color="primary" style={{ fontSize: 24, lineHeight: 28 }}>
+        {value}
+      </Title>
     </View>
   );
 }
+
+void Heading;
