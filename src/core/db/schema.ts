@@ -1,0 +1,79 @@
+export const SCHEMA_VERSION = 1;
+
+export const SCHEMA_STATEMENTS: readonly string[] = [
+  `CREATE TABLE IF NOT EXISTS schema_version (
+    version INTEGER PRIMARY KEY,
+    applied_at TEXT NOT NULL DEFAULT (datetime('now'))
+  );`,
+
+  `CREATE TABLE IF NOT EXISTS players (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    name TEXT NOT NULL,
+    handicap_index REAL,
+    created_at TEXT NOT NULL DEFAULT (datetime('now'))
+  );`,
+
+  `CREATE TABLE IF NOT EXISTS courses (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    name TEXT NOT NULL,
+    city TEXT,
+    state TEXT,
+    par INTEGER NOT NULL
+  );`,
+
+  `CREATE TABLE IF NOT EXISTS tees (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    course_id INTEGER NOT NULL,
+    name TEXT NOT NULL,
+    color TEXT,
+    course_rating REAL NOT NULL,
+    slope_rating INTEGER NOT NULL,
+    yardage INTEGER,
+    FOREIGN KEY (course_id) REFERENCES courses(id) ON DELETE CASCADE
+  );`,
+
+  `CREATE TABLE IF NOT EXISTS tee_holes (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    tee_id INTEGER NOT NULL,
+    hole_number INTEGER NOT NULL,
+    par INTEGER NOT NULL,
+    yardage INTEGER,
+    stroke_index INTEGER NOT NULL,
+    FOREIGN KEY (tee_id) REFERENCES tees(id) ON DELETE CASCADE,
+    UNIQUE (tee_id, hole_number)
+  );`,
+
+  `CREATE TABLE IF NOT EXISTS rounds (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    player_id INTEGER NOT NULL,
+    course_id INTEGER NOT NULL,
+    tee_id INTEGER NOT NULL,
+    played_at TEXT NOT NULL,
+    pcc REAL NOT NULL DEFAULT 0,
+    is_nine_hole INTEGER NOT NULL DEFAULT 0,
+    FOREIGN KEY (player_id) REFERENCES players(id) ON DELETE CASCADE,
+    FOREIGN KEY (course_id) REFERENCES courses(id) ON DELETE CASCADE,
+    FOREIGN KEY (tee_id) REFERENCES tees(id) ON DELETE CASCADE
+  );`,
+
+  `CREATE TABLE IF NOT EXISTS hole_scores (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    round_id INTEGER NOT NULL,
+    hole_number INTEGER NOT NULL,
+    gross_score INTEGER NOT NULL,
+    putts INTEGER,
+    fairway_hit INTEGER,
+    green_in_regulation INTEGER,
+    FOREIGN KEY (round_id) REFERENCES rounds(id) ON DELETE CASCADE,
+    UNIQUE (round_id, hole_number)
+  );`,
+
+  `CREATE TABLE IF NOT EXISTS handicap_snapshots (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    player_id INTEGER NOT NULL,
+    handicap_index REAL,
+    computed_at TEXT NOT NULL DEFAULT (datetime('now')),
+    rounds_used INTEGER NOT NULL,
+    FOREIGN KEY (player_id) REFERENCES players(id) ON DELETE CASCADE
+  );`,
+];
