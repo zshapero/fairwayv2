@@ -77,6 +77,24 @@ export interface SchemaVersionRow {
   applied_at: string;
 }
 
+export interface Recommendation {
+  id: string;
+  player_id: number;
+  rule_id: string;
+  title: string;
+  summary: string;
+  detail: string;
+  drill: string;
+  /** Persisted as JSON in the column; parsed when reading. */
+  triggering_round_ids: number[];
+  threshold_value: number | null;
+  threshold_label: string | null;
+  /** Unix epoch milliseconds. */
+  created_at: number;
+  /** Unix epoch milliseconds when dismissed; null while active. */
+  dismissed_at: number | null;
+}
+
 export type TableName =
   | "players"
   | "courses"
@@ -85,6 +103,7 @@ export type TableName =
   | "rounds"
   | "hole_scores"
   | "handicap_snapshots"
+  | "recommendations"
   | "schema_version";
 
 export const ALL_TABLES: readonly TableName[] = [
@@ -95,5 +114,6 @@ export const ALL_TABLES: readonly TableName[] = [
   "rounds",
   "hole_scores",
   "handicap_snapshots",
+  "recommendations",
   "schema_version",
 ];

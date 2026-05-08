@@ -1,4 +1,4 @@
-export const SCHEMA_VERSION = 4;
+export const SCHEMA_VERSION = 5;
 
 export const SCHEMA_STATEMENTS: readonly string[] = [
   `CREATE TABLE IF NOT EXISTS schema_version (
@@ -84,4 +84,26 @@ export const SCHEMA_STATEMENTS: readonly string[] = [
     rounds_used INTEGER NOT NULL,
     FOREIGN KEY (player_id) REFERENCES players(id) ON DELETE CASCADE
   );`,
+
+  `CREATE TABLE IF NOT EXISTS recommendations (
+    id TEXT PRIMARY KEY,
+    player_id INTEGER NOT NULL,
+    rule_id TEXT NOT NULL,
+    title TEXT NOT NULL,
+    summary TEXT NOT NULL,
+    detail TEXT NOT NULL,
+    drill TEXT NOT NULL,
+    triggering_round_ids TEXT NOT NULL,
+    threshold_value REAL,
+    threshold_label TEXT,
+    created_at INTEGER NOT NULL,
+    dismissed_at INTEGER,
+    FOREIGN KEY (player_id) REFERENCES players(id) ON DELETE CASCADE
+  );`,
+
+  `CREATE INDEX IF NOT EXISTS idx_recommendations_player_active
+    ON recommendations(player_id, dismissed_at);`,
+
+  `CREATE INDEX IF NOT EXISTS idx_recommendations_player_rule_active
+    ON recommendations(player_id, rule_id, dismissed_at);`,
 ];

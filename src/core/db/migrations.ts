@@ -1,7 +1,7 @@
 /**
- * Idempotent migration planner. Each step inspects the live `hole_scores`
- * columns and only emits the ALTER statements for columns that don't already
- * exist, so running migrations twice is a no-op.
+ * Idempotent migration planner. Each step inspects the live schema (column
+ * presence per table, plus the set of existing tables) and only emits the
+ * statements that are still required, so running migrations twice is a no-op.
  *
  * The planner is split out from the database singleton so the SQL is unit-
  * testable against any SQLite-compatible runtime (including `node:sqlite` in
@@ -57,16 +57,43 @@ export const ROUND_COLUMNS_V4: readonly ColumnSpec[] = [
   },
 ];
 
+export const RECOMMENDATIONS_TABLE_SQL = `CREATE TABLE IF NOT EXISTS recommendations (
+    id TEXT PRIMARY KEY,
+    player_id INTEGER NOT NULL,
+    rule_id TEXT NOT NULL,
+    title TEXT NOT NULL,
+    summary TEXT NOT NULL,
+    detail TEXT NOT NULL,
+    drill TEXT NOT NULL,
+    triggering_round_ids TEXT NOT NULL,
+    threshold_value REAL,
+    threshold_label TEXT,
+    created_at INTEGER NOT NULL,
+    dismissed_at INTEGER,
+    FOREIGN KEY (player_id) REFERENCES players(id) ON DELETE CASCADE
+  );`;
+
+export const RECOMMENDATIONS_INDEX_SQL = [
+  "CREATE INDEX IF NOT EXISTS idx_recommendations_player_active ON recommendations(player_id, dismissed_at);",
+  "CREATE INDEX IF NOT EXISTS idx_recommendations_player_rule_active ON recommendations(player_id, rule_id, dismissed_at);",
+];
+
 export interface ExistingColumnsByTable {
   courses: readonly string[];
   rounds: readonly string[];
   hole_scores: readonly string[];
 }
 
+export interface ExistingState {
+  columns: ExistingColumnsByTable;
+  /** Names of tables that already exist in the database. */
+  tables: readonly string[];
+}
+
 /**
- * Plan the SQL needed to bring the database forward to schema v4. Returns the
- * ordered list of statements to execute. Pass the columns that already exist
- * in each table so the planner can skip ones that are already in place.
+ * Plan the SQL needed to bring the database forward to schema v4 (the column
+ * additions to existing tables). Pass the columns already in each table so
+ * the planner skips ones that are already in place.
  */
 export function planMigrationToV4(existing: ExistingColumnsByTable): string[] {
   const statements: string[] = [];
@@ -82,13 +109,28 @@ export function planMigrationToV4(existing: ExistingColumnsByTable): string[] {
   need(ROUND_COLUMNS_V4, existing.rounds);
   need(HOLE_SCORE_COLUMNS_V4, existing.hole_scores);
 
-  // The unique index on courses.external_id is owned by the courses migration,
-  // but it's idempotent via IF NOT EXISTS so we can always emit it.
   if (!new Set(existing.courses).has("external_id")) {
     statements.push(
       "CREATE UNIQUE INDEX IF NOT EXISTS idx_courses_external_id ON courses(external_id);",
     );
   }
 
+  return statements;
+}
+
+/**
+ * Plan the full set of statements to bring the database to schema v5: the v4
+ * column additions plus the new `recommendations` table and its supporting
+ * indexes. The recommendations DDL uses `IF NOT EXISTS` so it's safe to emit
+ * unconditionally, but we only emit it when the table doesn't already exist
+ * to keep idempotency tests honest.
+ */
+export function planMigrationToV5(existing: ExistingState): string[] {
+  const statements = planMigrationToV4(existing.columns);
+  const tables = new Set(existing.tables);
+  if (!tables.has("recommendations")) {
+    statements.push(RECOMMENDATIONS_TABLE_SQL);
+    statements.push(...RECOMMENDATIONS_INDEX_SQL);
+  }
   return statements;
 }

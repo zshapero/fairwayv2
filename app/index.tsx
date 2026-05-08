@@ -3,6 +3,7 @@ import { useCallback, useState } from "react";
 import { Pressable, SafeAreaView, ScrollView, Text, View } from "react-native";
 
 import * as coursesRepo from "@/core/db/repositories/courses";
+import * as recommendationsRepo from "@/core/db/repositories/recommendations";
 import * as roundsRepo from "@/core/db/repositories/rounds";
 import type { Course, Round } from "@/core/db/types";
 import { getCurrentPlayer } from "@/services/currentPlayer";
@@ -17,6 +18,7 @@ interface RecentRound {
 export default function HomeScreen() {
   const [handicapIndex, setHandicapIndex] = useState<number | null | undefined>(undefined);
   const [recent, setRecent] = useState<RecentRound[]>([]);
+  const [activeRecCount, setActiveRecCount] = useState(0);
 
   useFocusEffect(
     useCallback(() => {
@@ -26,14 +28,19 @@ export default function HomeScreen() {
           const player = await getCurrentPlayer();
           if (!cancelled) setHandicapIndex(player?.handicap_index ?? null);
           if (!player) {
-            if (!cancelled) setRecent([]);
+            if (!cancelled) {
+              setRecent([]);
+              setActiveRecCount(0);
+            }
             return;
           }
-          const [allRounds, deltas, allCourses] = await Promise.all([
+          const [allRounds, deltas, allCourses, recCount] = await Promise.all([
             roundsRepo.listCompletedRoundsForPlayer(player.id),
             loadRoundDeltasForPlayer(player.id),
             coursesRepo.listCourses(),
+            recommendationsRepo.countActiveForPlayer(player.id),
           ]);
+          if (!cancelled) setActiveRecCount(recCount);
           const courseById = new Map(allCourses.map((c) => [c.id, c]));
           const deltaById = new Map<number, RoundIndexBadge>(
             deltas.map((d) => [d.roundId, d]),
@@ -51,6 +58,7 @@ export default function HomeScreen() {
           if (!cancelled) {
             setHandicapIndex(null);
             setRecent([]);
+            setActiveRecCount(0);
           }
         }
       })();
@@ -93,6 +101,15 @@ export default function HomeScreen() {
             Debug
           </Link>
         </View>
+
+        {activeRecCount > 0 ? (
+          <Link
+            href="/recommendations"
+            className="rounded-xl bg-fairway-700 px-4 py-3 text-center text-base font-semibold text-white"
+          >
+            Recommendations ({activeRecCount})
+          </Link>
+        ) : null}
 
         {recent.length > 0 ? (
           <View className="gap-2">

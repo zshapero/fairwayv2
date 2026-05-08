@@ -23,6 +23,7 @@ import {
   type SummaryResult,
 } from "@/services/roundCompletion";
 import { HandicapMovementCard } from "@/components/HandicapMovementCard";
+import { runEngine } from "@/services/recommendationsRunner";
 
 export default function SummaryScreen() {
   const params = useLocalSearchParams<{ roundId?: string }>();
@@ -97,6 +98,12 @@ export default function SummaryScreen() {
     try {
       const result = await saveCompletedRound(input);
       setSavedSummary(result);
+      // Recompute recommendations off the critical path so the UI doesn't wait.
+      void runEngine(input.playerId).catch((err) => {
+        if (__DEV__) {
+          console.warn("recommendation engine failed", err);
+        }
+      });
     } catch (err) {
       Alert.alert("Save failed", err instanceof Error ? err.message : String(err));
     } finally {
