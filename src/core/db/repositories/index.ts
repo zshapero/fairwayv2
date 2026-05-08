@@ -5,4 +5,5 @@ export * as teeHoles from "./teeHoles";
 export * as rounds from "./rounds";
 export * as holeScores from "./holeScores";
 export * as handicapSnapshots from "./handicapSnapshots";
+export * as recommendations from "./recommendations";
 export * as schemaVersion from "./schemaVersion";

@@ -11,6 +11,7 @@ import type {
 } from "@/core/db/types";
 import { getOrCreateCurrentPlayer } from "./currentPlayer";
 import { saveCompletedRound, type SummaryInput } from "./roundCompletion";
+import { runEngine } from "./recommendationsRunner";
 
 export interface GeneratedRound {
   roundId: number;
@@ -176,6 +177,9 @@ export async function generateSampleRound(): Promise<GeneratedRound> {
     priorDifferentials,
   };
   await saveCompletedRound(input);
+  // Refresh recommendations after each generated round so the engine reflects
+  // the new data on the next visit to /recommendations.
+  await runEngine(player.id);
 
   return { roundId, courseName: course.name, teeName: tee.name, grossScore };
 }

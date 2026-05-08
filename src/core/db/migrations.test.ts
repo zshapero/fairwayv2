@@ -1,6 +1,11 @@
 import { createRequire } from "node:module";
 import { describe, expect, it } from "vitest";
-import { planMigrationToV4 } from "./migrations";
+import {
+  planMigrationToV4,
+  planMigrationToV5,
+  RECOMMENDATIONS_INDEX_SQL,
+  RECOMMENDATIONS_TABLE_SQL,
+} from "./migrations";
 
 // Load node:sqlite via CJS so vitest's vite-based resolver doesn't try to
 // transform it as a regular bare specifier.
@@ -185,5 +190,155 @@ describe("migration integration (node:sqlite)", () => {
       hole_scores: listColumns(db, "hole_scores"),
     });
     expect(second).toEqual([]);
+  });
+});
+
+describe("planMigrationToV5", () => {
+  const fullyMigratedColumns = {
+    courses: ["id", "name", "city", "state", "par", "external_id"],
+    rounds: [
+      "id",
+      "player_id",
+      "course_id",
+      "tee_id",
+      "played_at",
+      "pcc",
+      "is_nine_hole",
+      "completed_at",
+      "differential",
+    ],
+    hole_scores: [
+      "id",
+      "round_id",
+      "hole_number",
+      "gross_score",
+      "putts",
+      "fairway_hit",
+      "green_in_regulation",
+      "penalty_strokes",
+      "fairway_miss_direction",
+      "gir_miss_direction",
+      "hit_from_sand",
+      "sand_save",
+    ],
+  };
+
+  it("emits the recommendations table + indexes when missing on a v4 database", () => {
+    const statements = planMigrationToV5({
+      columns: fullyMigratedColumns,
+      tables: ["players", "courses", "tees", "tee_holes", "rounds", "hole_scores"],
+    });
+    expect(statements).toEqual([
+      RECOMMENDATIONS_TABLE_SQL,
+      ...RECOMMENDATIONS_INDEX_SQL,
+    ]);
+  });
+
+  it("is idempotent when the recommendations table already exists", () => {
+    const statements = planMigrationToV5({
+      columns: fullyMigratedColumns,
+      tables: [
+        "players",
+        "courses",
+        "tees",
+        "tee_holes",
+        "rounds",
+        "hole_scores",
+        "recommendations",
+      ],
+    });
+    expect(statements).toEqual([]);
+  });
+});
+
+describe("recommendations migration integration (node:sqlite)", () => {
+  function listTables(db: DatabaseSync): string[] {
+    return (
+      db.prepare("SELECT name FROM sqlite_master WHERE type = 'table';").all() as Array<{
+        name: string;
+      }>
+    ).map((r) => r.name);
+  }
+
+  it("creates the recommendations table on a v4 database without touching existing data", () => {
+    const db = new DatabaseSync(":memory:");
+    db.exec(`
+      CREATE TABLE players (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT NOT NULL);
+      CREATE TABLE courses (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT, city TEXT, state TEXT, par INTEGER, external_id TEXT);
+      CREATE TABLE rounds (
+        id INTEGER PRIMARY KEY AUTOINCREMENT, player_id INTEGER, course_id INTEGER, tee_id INTEGER,
+        played_at TEXT, pcc REAL, is_nine_hole INTEGER, completed_at TEXT, differential REAL
+      );
+      CREATE TABLE hole_scores (
+        id INTEGER PRIMARY KEY AUTOINCREMENT, round_id INTEGER, hole_number INTEGER,
+        gross_score INTEGER, putts INTEGER, fairway_hit INTEGER, green_in_regulation INTEGER,
+        penalty_strokes INTEGER, fairway_miss_direction TEXT, gir_miss_direction TEXT,
+        hit_from_sand INTEGER NOT NULL DEFAULT 0, sand_save INTEGER
+      );
+    `);
+    db.prepare("INSERT INTO players (name) VALUES ('You');").run();
+
+    const statements = planMigrationToV5({
+      columns: {
+        courses: ["id", "name", "city", "state", "par", "external_id"],
+        rounds: [
+          "id",
+          "player_id",
+          "course_id",
+          "tee_id",
+          "played_at",
+          "pcc",
+          "is_nine_hole",
+          "completed_at",
+          "differential",
+        ],
+        hole_scores: [
+          "id",
+          "round_id",
+          "hole_number",
+          "gross_score",
+          "putts",
+          "fairway_hit",
+          "green_in_regulation",
+          "penalty_strokes",
+          "fairway_miss_direction",
+          "gir_miss_direction",
+          "hit_from_sand",
+          "sand_save",
+        ],
+      },
+      tables: listTables(db),
+    });
+    for (const sql of statements) db.exec(sql);
+
+    expect(listTables(db)).toContain("recommendations");
+    const player = db.prepare("SELECT * FROM players WHERE id = 1;").get() as
+      | Record<string, unknown>
+      | undefined;
+    expect(player?.name).toBe("You");
+
+    // Inserting a recommendation works end-to-end.
+    db.prepare(
+      `INSERT INTO recommendations (id, player_id, rule_id, title, summary, detail, drill, triggering_round_ids, threshold_value, threshold_label, created_at, dismissed_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);`,
+    ).run(
+      "putting_regression_1",
+      1,
+      "putting_regression",
+      "Putting has slipped",
+      "summary",
+      "detail",
+      "drill",
+      "[1,2,3]",
+      1.8,
+      "+1.8 putts/round",
+      Date.now(),
+      null,
+    );
+    const rec = db.prepare("SELECT * FROM recommendations WHERE id = ?;").get(
+      "putting_regression_1",
+    ) as Record<string, unknown> | undefined;
+    expect(rec?.rule_id).toBe("putting_regression");
+    expect(rec?.dismissed_at).toBeNull();
   });
 });
