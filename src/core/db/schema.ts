@@ -1,4 +1,4 @@
-export const SCHEMA_VERSION = 1;
+export const SCHEMA_VERSION = 2;
 
 export const SCHEMA_STATEMENTS: readonly string[] = [
   `CREATE TABLE IF NOT EXISTS schema_version (
@@ -18,7 +18,8 @@ export const SCHEMA_STATEMENTS: readonly string[] = [
     name TEXT NOT NULL,
     city TEXT,
     state TEXT,
-    par INTEGER NOT NULL
+    par INTEGER NOT NULL,
+    external_id TEXT UNIQUE
   );`,
 
   `CREATE TABLE IF NOT EXISTS tees (
