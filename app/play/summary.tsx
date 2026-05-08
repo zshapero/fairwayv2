@@ -22,6 +22,7 @@ import {
   type SummaryInput,
   type SummaryResult,
 } from "@/services/roundCompletion";
+import { HandicapMovementCard } from "@/components/HandicapMovementCard";
 
 export default function SummaryScreen() {
   const params = useLocalSearchParams<{ roundId?: string }>();
@@ -139,21 +140,22 @@ export default function SummaryScreen() {
         />
         <SummaryRow label="Score differential" value={summary.scoreDifferential.toFixed(1)} />
         <SummaryRow label="Course handicap" value={summary.courseHandicap} />
-        <SummaryRow
-          label="Handicap index (before)"
-          value={summary.handicapIndexBefore?.toFixed(1) ?? "—"}
-        />
-        <SummaryRow
-          label={savedSummary ? "Handicap index (now)" : "Projected handicap index"}
-          value={summary.projectedHandicapIndex?.toFixed(1) ?? "—"}
-          highlight
+
+        <HandicapMovementCard
+          priorDifferentials={input.priorDifferentials}
+          newDifferential={summary.scoreDifferential}
+          onPress={
+            savedSummary
+              ? () => router.push({ pathname: "/rounds/[id]", params: { id: String(input.roundId) } })
+              : undefined
+          }
         />
 
         {savedSummary ? (
           <View className="gap-2">
             <View className="rounded-lg bg-fairway-50 p-3">
               <Text className="text-sm text-fairway-700">
-                Round saved. Your handicap index has been updated.
+                Round saved. Tap the card above for the full breakdown.
               </Text>
             </View>
             <Pressable
