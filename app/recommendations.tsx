@@ -9,13 +9,12 @@ import * as recommendationsRepo from "@/core/db/repositories/recommendations";
 import type { ConfidenceLevel, Recommendation } from "@/core/db/types";
 import { getCurrentPlayer } from "@/services/currentPlayer";
 import {
+  BagIllustration,
   Body,
   BodySm,
   Card,
   Caption,
-  EmptyState,
   GlassCard,
-  Heading,
   Micro,
   Pill,
   Screen,
@@ -138,10 +137,21 @@ export default function RecommendationsScreen() {
         ) : null}
 
         {items && items.length === 0 && !error ? (
-          <EmptyState
-            title="Nothing to flag yet"
-            description="Play a few more rounds and we'll start spotting patterns."
-          />
+          <View
+            style={{
+              alignItems: "center",
+              gap: spacing.md,
+              paddingVertical: spacing.xl,
+            }}
+          >
+            <BagIllustration size={104} />
+            <View style={{ alignItems: "center", gap: spacing.xs }}>
+              <SerifBody style={{ textAlign: "center" }}>We&apos;re learning your game.</SerifBody>
+              <BodySm style={{ textAlign: "center", maxWidth: 300 }}>
+                A few more rounds and we&apos;ll have notes.
+              </BodySm>
+            </View>
+          </View>
         ) : null}
 
         {sections && sections.positives.length > 0 ? (

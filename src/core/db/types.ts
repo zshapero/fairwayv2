@@ -1,7 +1,10 @@
+export type TeePreference = "forward" | "middle" | "back" | "tournament";
+
 export interface Player {
   id: number;
   name: string;
   handicap_index: number | null;
+  preferred_tee: TeePreference | null;
   created_at: string;
 }
 

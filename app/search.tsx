@@ -1,7 +1,6 @@
 import { Link } from "expo-router";
 import { useCallback, useMemo, useState } from "react";
 import {
-  ActivityIndicator,
   Pressable,
   SafeAreaView,
   ScrollView,
@@ -10,6 +9,14 @@ import {
   View,
 } from "react-native";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+
+import {
+  BodySm,
+  MagnifierIllustration,
+  PulsingDot,
+  SerifBody,
+} from "@/components";
+import { spacing } from "@/design/tokens";
 
 import { useDebouncedValue } from "@/hooks/useDebouncedValue";
 import {
@@ -86,14 +93,29 @@ export default function SearchScreen() {
       </View>
 
       <View className="px-4">
-        <TextInput
-          value={text}
-          onChangeText={setText}
-          placeholder="Search by club or course name…"
-          autoCorrect={false}
-          autoCapitalize="words"
-          className="rounded-lg border border-gray-300 bg-white px-4 py-3 text-base"
-        />
+        <View>
+          <TextInput
+            value={text}
+            onChangeText={setText}
+            placeholder="Search by club or course name…"
+            autoCorrect={false}
+            autoCapitalize="words"
+            className="rounded-lg border border-gray-300 bg-white px-4 py-3 text-base"
+          />
+          {showLoading ? (
+            <View
+              style={{
+                position: "absolute",
+                right: 14,
+                top: 0,
+                bottom: 0,
+                justifyContent: "center",
+              }}
+            >
+              <PulsingDot size={9} />
+            </View>
+          ) : null}
+        </View>
       </View>
 
       <ScrollView contentContainerClassName="p-4 gap-3">
@@ -103,23 +125,44 @@ export default function SearchScreen() {
           </View>
         ) : null}
 
-        {showLoading ? (
-          <View className="flex-row items-center gap-2 py-2">
-            <ActivityIndicator />
-            <Text className="text-sm text-gray-600">Searching…</Text>
+        {showEmpty ? (
+          <View
+            style={{
+              alignItems: "center",
+              paddingVertical: spacing.xl,
+              gap: spacing.md,
+            }}
+          >
+            <MagnifierIllustration size={88} />
+            <View style={{ alignItems: "center", gap: spacing.xxs }}>
+              <SerifBody style={{ textAlign: "center" }}>
+                Nothing matches “{debounced}”.
+              </SerifBody>
+              <BodySm style={{ textAlign: "center" }}>
+                Try the name of your home club.
+              </BodySm>
+            </View>
           </View>
         ) : null}
 
-        {showEmpty ? (
-          <Text className="py-4 text-center text-sm text-gray-500">
-            No clubs match “{debounced}”.
-          </Text>
-        ) : null}
-
         {!apiKeyPresent || debounced.trim().length === 0 ? (
-          <Text className="py-4 text-center text-sm text-gray-500">
-            Type a club or course name to search.
-          </Text>
+          <View
+            style={{
+              alignItems: "center",
+              paddingVertical: spacing.xl,
+              gap: spacing.md,
+            }}
+          >
+            <MagnifierIllustration size={88} />
+            <View style={{ alignItems: "center", gap: spacing.xxs }}>
+              <SerifBody style={{ textAlign: "center" }}>
+                Find your course.
+              </SerifBody>
+              <BodySm style={{ textAlign: "center" }}>
+                Try the name of your home club.
+              </BodySm>
+            </View>
+          </View>
         ) : null}
 
         {clubs.map((club) => (
