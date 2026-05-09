@@ -133,11 +133,10 @@ function CardBody({
     return (
       <View className="gap-1">
         <Text className="text-base font-semibold text-fairway-700">
-          Post 3 rounds to see your index
+          One more round and you&apos;ll have a number
         </Text>
         <Text className="text-sm text-gray-600">
-          You need at least 3 acceptable scores before the WHS can establish a
-          Handicap Index. Keep posting — you&apos;re on your way.
+          Three rounds in and we can give you a Handicap Index. Keep posting.
         </Text>
       </View>
     );
@@ -161,32 +160,45 @@ function CardBody({
 
   const oldLabel = oldIndex === null ? "—" : oldIndex.toFixed(1);
   const newLabel = newIndex === null ? "—" : newIndex.toFixed(1);
+  const movementWord =
+    direction === "down" ? "Down" : direction === "up" ? "Up" : direction === "flat" ? "Flat" : "New";
+  const moveAmount =
+    oldIndex !== null && newIndex !== null
+      ? Math.abs(newIndex - oldIndex).toFixed(1)
+      : null;
 
   return (
     <View className="gap-3">
       <View>
         <Text className="text-xs uppercase tracking-wide text-gray-500">
-          Handicap Index
+          {direction === "new"
+            ? "Your number"
+            : moveAmount
+              ? `${movementWord} ${moveAmount} to`
+              : "Your number"}
         </Text>
         <View className="flex-row items-baseline gap-3">
-          <Text className="text-4xl font-bold text-gray-700">{oldLabel}</Text>
-          <Text className="text-2xl text-gray-400">→</Text>
           <Text className={`text-5xl font-bold ${newColor}`}>{newLabel}</Text>
+          {direction !== "new" ? (
+            <Text className="text-base text-gray-500">
+              was {oldLabel}
+            </Text>
+          ) : null}
         </View>
       </View>
 
       <Text className="text-base text-gray-800">
-        This round&apos;s differential of {newDifferential.toFixed(1)} is your{" "}
+        That round counted as your{" "}
         <Text className="font-semibold">{ordinal(newDifferentialRank)}</Text>{" "}
         best of the last {windowSize}.{" "}
         {isCounting
-          ? "It is one of the lowest scores used to compute your index."
-          : "It does not fall in the lowest scores used to compute your index, so it doesn't change your handicap directly."}
+          ? "It's one of the rounds we use to compute your index, so it's helping pull the number where it is."
+          : "It doesn't land in the rounds we use to compute your index, so it didn't move the needle directly."}
       </Text>
 
       {droppedDifferential !== null ? (
         <Text className="text-sm text-gray-700">
-          It dropped your previous counting differential of{" "}
+          It bumped a previous{" "}
           <Text className="font-semibold">{droppedDifferential.toFixed(1)}</Text>{" "}
           out of the calculation.
         </Text>
@@ -195,13 +207,13 @@ function CardBody({
       {triggeredEsr > 0 ? (
         <View className="rounded-lg bg-amber-50 p-3">
           <Text className="text-sm font-semibold text-amber-800">
-            Exceptional score!
+            Exceptional round!
           </Text>
           <Text className="text-sm text-amber-800">
-            Your index was also reduced by {triggeredEsr.toFixed(1)} stroke
-            {triggeredEsr === 1 ? "" : "s"} for posting{" "}
-            {triggeredEsr === 2 ? "10 or more" : "between 7 and 9.9"} strokes
-            below your previous index.
+            Your index also got an extra {triggeredEsr.toFixed(1)}-stroke trim
+            for posting{" "}
+            {triggeredEsr === 2 ? "10 or more" : "7 to 10"} strokes under your
+            old number.
           </Text>
         </View>
       ) : null}

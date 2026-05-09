@@ -114,12 +114,12 @@ export default function SummaryScreen() {
 
   const handleDiscard = useCallback(() => {
     Alert.alert(
-      "Discard this round?",
-      "The hole scores will be deleted. Your other rounds and recommendations stay.",
+      "Throw out this round?",
+      "Hole scores get deleted. Your other rounds stay.",
       [
         { text: "Cancel", style: "cancel" },
         {
-          text: "Discard",
+          text: "Throw out",
           style: "destructive",
           onPress: async () => {
             try {
@@ -159,7 +159,7 @@ export default function SummaryScreen() {
 
   return (
     <Screen>
-      <Section label="ROUND SUMMARY">
+      <Section label="HOW IT COUNTED">
         <HandicapMovementCard
           priorDifferentials={input.priorDifferentials}
           newDifferential={summary.scoreDifferential}
@@ -172,20 +172,20 @@ export default function SummaryScreen() {
         />
       </Section>
 
-      <Section label="SCORECARD">
+      <Section label="HOW YOU PLAYED">
         <Card>
           <View style={{ flexDirection: "row", justifyContent: "space-between" }}>
-            <Stat label="Gross" value={summary.grossScore} />
-            <Stat label="AGS" value={summary.adjustedGrossScore} />
+            <Stat label="Score" value={summary.grossScore} />
+            <Stat label="Counted as" value={summary.adjustedGrossScore} />
             <Stat label="Differential" value={summary.scoreDifferential.toFixed(1)} />
-            <Stat label="Course HCP" value={summary.courseHandicap} />
+            <Stat label="Strokes given" value={summary.courseHandicap} />
           </View>
         </Card>
       </Section>
 
       {savedSummary ? (
         <Card>
-          <Caption>Round saved. Tap the card above for the full breakdown.</Caption>
+          <Caption>Saved. Tap the card above for the full story.</Caption>
           <View style={{ marginTop: spacing.md, alignItems: "flex-start" }}>
             <Button onPress={() => router.replace("/")}>Done</Button>
           </View>
@@ -193,7 +193,7 @@ export default function SummaryScreen() {
       ) : (
         <View style={{ flexDirection: "row", gap: spacing.sm }}>
           <Button variant="secondary" onPress={handleDiscard} style={{ flex: 1 }}>
-            Discard
+            Don&apos;t save
           </Button>
           <Button onPress={handleSave} disabled={saving} style={{ flex: 2 }}>
             {saving ? "Saving…" : "Save round"}

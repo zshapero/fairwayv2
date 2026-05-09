@@ -52,32 +52,32 @@ interface ScenarioPreset {
 }
 
 const SCENARIO_PRESETS: ScenarioPreset[] = [
-  { kind: "slicer", label: "Slicer", count: 10, description: "65% of fairway misses right" },
-  { kind: "puller", label: "Pulling", count: 10, description: "65% of fairway misses left" },
+  { kind: "slicer", label: "A slicer", count: 10, description: "Misses right off the tee." },
+  { kind: "puller", label: "A puller", count: 10, description: "Misses left off the tee." },
   {
     kind: "putting_trouble",
-    label: "Putting trouble",
+    label: "Putting issues",
     count: 10,
-    description: "~3 three-putts/round",
+    description: "About three 3-putts a round.",
   },
   {
     kind: "declining",
-    label: "Declining trend",
+    label: "A slump",
     count: 15,
-    description: "last 5 rounds 4 strokes worse",
+    description: "Recent 5 rounds running 4 worse.",
   },
   {
     kind: "improving",
-    label: "Improving trend",
+    label: "A hot streak",
     count: 15,
-    description: "last 5 rounds 4 strokes better",
+    description: "Recent 5 rounds running 4 better.",
   },
-  { kind: "sand_trouble", label: "Sand trouble", count: 10, description: "30%+ holes from sand" },
+  { kind: "sand_trouble", label: "Bunker magnet", count: 10, description: "Sand on a third of holes." },
   {
     kind: "approach_short",
-    label: "Approach short",
+    label: "Comes up short",
     count: 10,
-    description: "Most GIR misses short",
+    description: "Most missed greens land short.",
   },
 ];
 
@@ -128,7 +128,7 @@ export default function DebugScreen() {
     const indexLabel =
       result.finalHandicapIndex === null ? "—" : result.finalHandicapIndex.toFixed(1);
     setGenerationToast(
-      `Generated ${result.roundsCreated} rounds. Index updated to ${indexLabel}. Engine surfaced ${result.recommendationsTriggered} recommendation${result.recommendationsTriggered === 1 ? "" : "s"}.`,
+      `Added ${result.roundsCreated} rounds. Your index is now ${indexLabel}. The engine flagged ${result.recommendationsTriggered} note${result.recommendationsTriggered === 1 ? "" : "s"}.`,
     );
     setTimeout(() => setGenerationToast(null), 5000);
   }, []);
@@ -141,7 +141,7 @@ export default function DebugScreen() {
         showResult(result);
         await refresh();
       } catch (err) {
-        Alert.alert("Generation failed", err instanceof Error ? err.message : String(err));
+        Alert.alert("Couldn't add rounds", err instanceof Error ? err.message : String(err));
       } finally {
         setGenerating(null);
       }
@@ -177,18 +177,18 @@ export default function DebugScreen() {
 
   const handleClearRounds = useCallback(() => {
     Alert.alert(
-      "Clear rounds, snapshots, and recommendations?",
-      "Courses, tees, and players stay. Round history and any active recommendations will be deleted.",
+      "Wipe rounds and notes?",
+      "Courses, tees, and players stay. Everything else goes.",
       [
         { text: "Cancel", style: "cancel" },
         {
-          text: "Clear",
+          text: "Wipe",
           style: "destructive",
           onPress: async () => {
             setBusy(true);
             try {
               await clearAllRoundData();
-              setGenerationToast("Cleared rounds and recommendations.");
+              setGenerationToast("Wiped rounds and notes.");
               setTimeout(() => setGenerationToast(null), 3000);
               await refresh();
             } catch (err) {
@@ -220,12 +220,12 @@ export default function DebugScreen() {
 
   const handleClearAll = useCallback(() => {
     Alert.alert(
-      "Clear all data?",
-      "This deletes every row from every table — including imported courses.",
+      "Wipe everything?",
+      "This wipes every row in every table, courses included.",
       [
         { text: "Cancel", style: "cancel" },
         {
-          text: "Clear",
+          text: "Wipe",
           style: "destructive",
           onPress: async () => {
             setBusy(true);
@@ -233,7 +233,7 @@ export default function DebugScreen() {
               await clearAllData();
               await refresh();
             } catch (err) {
-              Alert.alert("Clear failed", err instanceof Error ? err.message : String(err));
+              Alert.alert("Wipe failed", err instanceof Error ? err.message : String(err));
             } finally {
               setBusy(false);
             }
@@ -269,7 +269,7 @@ export default function DebugScreen() {
     try {
       const clubs = await searchClubs("Pebble Beach");
       const first = clubs[0];
-      setApiResult(`Found ${clubs.length} club(s)${first ? ` — first: ${first.name}` : ""}`);
+      setApiResult(`Found ${clubs.length} club(s)${first ? `. First up: ${first.name}` : ""}.`);
     } catch (err) {
       const message =
         err instanceof GolfCourseApiError
@@ -310,23 +310,23 @@ export default function DebugScreen() {
       ) : null}
 
       <Section
-        label="GENERATE TEST DATA"
-        trailing={status ? <Caption>{status.counts.rounds} rounds in DB</Caption> : null}
+        label="ADD TEST DATA"
+        trailing={status ? <Caption>{status.counts.rounds} rounds saved</Caption> : null}
       >
         <Card>
           <Body>
-            One-click data sets to exercise the recommendation engine. Rounds spread across the
-            last 90 days on a random imported course.
+            Quick fakes for testing the engine. Rounds get spread across the last 90 days on a
+            random imported course.
           </Body>
           <View style={{ marginTop: spacing.md }}>
             <Button onPress={handleGenerate20} disabled={disableAllGen} full>
-              {generating === "random" ? "Generating…" : "Generate 20 random rounds"}
+              {generating === "random" ? "Adding…" : "Add 20 rounds"}
             </Button>
           </View>
         </Card>
 
         <Card>
-          <Micro>SCENARIO PRESETS</Micro>
+          <Micro>TRY A SCENARIO</Micro>
           <View
             style={{
               marginTop: spacing.sm,
@@ -350,13 +350,13 @@ export default function DebugScreen() {
         </Card>
 
         <Card>
-          <Micro>CUSTOM</Micro>
+          <Micro>YOUR OWN MIX</Micro>
           <Body style={{ marginTop: spacing.xxs }}>
-            Generate a custom number of rounds at a target handicap.
+            Pick a count and a target handicap.
           </Body>
           <View style={{ marginTop: spacing.sm, alignItems: "flex-start" }}>
             <Button onPress={() => setCustomOpen(true)} disabled={disableAllGen} variant="secondary">
-              Custom…
+              Build a set…
             </Button>
           </View>
         </Card>
@@ -374,7 +374,7 @@ export default function DebugScreen() {
               opacity: disableAllGen ? 0.5 : 1,
             }}
           >
-            <Body style={{ color: "#9B2D2D" }}>Clear rounds and recommendations</Body>
+            <Body style={{ color: "#9B2D2D" }}>Wipe rounds and notes</Body>
           </Pressable>
         </View>
       </Section>
@@ -390,10 +390,10 @@ export default function DebugScreen() {
                 backgroundColor: status?.connected ? colors.positive : "#9B2D2D",
               }}
             />
-            <Body>{status?.connected ? "Connected" : "Not connected"}</Body>
+            <Body>{status?.connected ? "Database: ready" : "Database: not connected"}</Body>
           </View>
           <Caption style={{ marginTop: spacing.xxs }}>
-            Schema version: {status?.schemaVersion ?? "—"}
+            Schema version {status?.schemaVersion ?? "—"}
           </Caption>
         </Card>
 
@@ -414,20 +414,20 @@ export default function DebugScreen() {
 
         <View style={{ flexDirection: "row", flexWrap: "wrap", gap: spacing.xs }}>
           <Button onPress={handleSeed} disabled={busy} variant="secondary">
-            Seed demo data
+            Drop in two demo courses
           </Button>
           <Button onPress={handleClearAll} disabled={busy} variant="ghost">
-            Clear all data
+            Wipe everything
           </Button>
         </View>
       </Section>
 
-      <Section label="ENGINE">
+      <Section label="ENGINE CHECK">
         <Card>
-          <Body>Sanity-check the WHS engine with the USGA Rule 5.1 inputs.</Body>
+          <Body>Run the WHS math against the USGA worked example.</Body>
           <View style={{ marginTop: spacing.sm, alignItems: "flex-start" }}>
             <Button onPress={handleRunHandicapTest} variant="secondary">
-              Run handicap test
+              Test the math
             </Button>
           </View>
           {handicapResult ? (
@@ -436,7 +436,7 @@ export default function DebugScreen() {
         </Card>
       </Section>
 
-      <Section label="GOLFCOURSEAPI">
+      <Section label="COURSE API">
         <Card>
           <View style={{ flexDirection: "row", alignItems: "center", gap: spacing.xs }}>
             <View
@@ -447,10 +447,10 @@ export default function DebugScreen() {
                 backgroundColor: apiKeyPresent ? colors.positive : "#9B2D2D",
               }}
             />
-            <Body>{apiKeyPresent ? "API key present" : "API key missing"}</Body>
+            <Body>{apiKeyPresent ? "Key in place" : "Key missing"}</Body>
           </View>
           <Caption style={{ marginTop: spacing.xxs }}>
-            Imported courses: {status?.counts.courses ?? 0}
+            {status?.counts.courses ?? 0} courses imported
           </Caption>
           <View style={{ marginTop: spacing.sm, alignItems: "flex-start" }}>
             <Button
@@ -458,7 +458,7 @@ export default function DebugScreen() {
               disabled={apiTesting || !apiKeyPresent}
               variant="secondary"
             >
-              {apiTesting ? "Testing…" : "Test API connection"}
+              {apiTesting ? "Pinging…" : "Ping the API"}
             </Button>
           </View>
           {apiResult ? <Caption style={{ marginTop: spacing.sm }}>{apiResult}</Caption> : null}
@@ -514,8 +514,8 @@ function ScenarioChip({
       <Heading style={{ fontSize: 16 }}>{label}</Heading>
       <Caption>{description}</Caption>
       <View style={{ marginTop: spacing.xxs, flexDirection: "row", justifyContent: "space-between" }}>
-        <Caption color="primary">{running ? "Generating…" : `Generate ${count}`}</Caption>
-        {running ? <Pill variant="positive">running</Pill> : null}
+        <Caption color="primary">{running ? "Adding…" : `Add ${count}`}</Caption>
+        {running ? <Pill variant="positive">working</Pill> : null}
       </View>
     </Pressable>
   );
@@ -551,13 +551,13 @@ function CustomGenerationModal({
         }}
       >
         <Card>
-          <Heading>Custom generation</Heading>
+          <Heading>Build a set</Heading>
           <Caption style={{ marginTop: spacing.xxs }}>
-            Tune count and target handicap, then run.
+            Set the count and target handicap, then go.
           </Caption>
 
           <View style={{ marginTop: spacing.md, gap: spacing.xxs }}>
-            <Micro>NUMBER OF ROUNDS</Micro>
+            <Micro>HOW MANY ROUNDS</Micro>
             <TextInput
               value={count}
               onChangeText={onCountChange}
@@ -574,11 +574,11 @@ function CustomGenerationModal({
                 backgroundColor: colors.surface,
               }}
             />
-            <Caption>1 to 50 rounds.</Caption>
+            <Caption>Anywhere from 1 to 50.</Caption>
           </View>
 
           <View style={{ marginTop: spacing.md, gap: spacing.xxs }}>
-            <Micro>TARGET HANDICAP · {handicap.toFixed(0)}</Micro>
+            <Micro>HANDICAP TO MATCH · {handicap.toFixed(0)}</Micro>
             <View style={{ flexDirection: "row", alignItems: "center", gap: spacing.sm }}>
               <Stepper
                 label="−"
@@ -599,7 +599,7 @@ function CustomGenerationModal({
                 onPress={() => onHandicapChange(Math.min(30, handicap + 1))}
               />
             </View>
-            <Caption>Range 5 to 30.</Caption>
+            <Caption>5 to 30 works best.</Caption>
           </View>
 
           <View style={{ marginTop: spacing.lg, flexDirection: "row", gap: spacing.xs }}>
@@ -607,7 +607,7 @@ function CustomGenerationModal({
               Cancel
             </Button>
             <Button onPress={onGenerate} full>
-              Generate
+              Build it
             </Button>
           </View>
         </Card>
