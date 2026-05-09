@@ -1,6 +1,7 @@
 import { Link, router, useFocusEffect } from "expo-router";
 import { useCallback, useState } from "react";
 import { View } from "react-native";
+import { ChevronRight, ArrowDown, ArrowUp, Minus } from "lucide-react-native";
 
 import * as coursesRepo from "@/core/db/repositories/courses";
 import * as recommendationsRepo from "@/core/db/repositories/recommendations";
@@ -9,17 +10,20 @@ import type { Course, Round } from "@/core/db/types";
 import { getCurrentPlayer } from "@/services/currentPlayer";
 import { loadRoundDeltasForPlayer, type RoundIndexBadge } from "@/services/roundMovement";
 import {
+  AnimatedNumber,
   Body,
+  BodySm,
   Button,
   Card,
   Caption,
-  Display,
+  HomeHero,
   Heading,
   Micro,
-  NumberDisplay,
   Pill,
   Screen,
   Section,
+  SerifBody,
+  StaggerEntry,
 } from "@/components";
 import { colors, spacing } from "@/design/tokens";
 
@@ -86,63 +90,76 @@ export default function HomeScreen() {
     }, []),
   );
 
-  const indexLabel =
-    handicapIndex === undefined ? "—" : handicapIndex === null ? "—" : handicapIndex.toFixed(1);
+  const value = handicapIndex ?? null;
 
   return (
     <Screen>
-      <View style={{ alignItems: "center", paddingTop: spacing.xl, gap: spacing.xs }}>
-        <Micro color="accent">YOUR INDEX</Micro>
-        <Display color="primary">{indexLabel}</Display>
-        <Caption style={{ textAlign: "center" }}>
-          {handicapIndex === null
-            ? "Three rounds in and we'll have a number for you."
-            : "Your best 8 of 20."}
-        </Caption>
-      </View>
+      <StaggerEntry>
+        <HomeHero height={420}>
+          <Micro color="accent" style={{ opacity: 0.8 }}>
+            YOUR INDEX
+          </Micro>
+          <View style={{ marginTop: spacing.sm }}>
+            <AnimatedNumber value={value} placeholder="—" />
+          </View>
+          <Caption style={{ marginTop: spacing.sm, textAlign: "center" }}>
+            {handicapIndex === null
+              ? "Three rounds in and we'll have a number for you."
+              : "Your best 8 of 20."}
+          </Caption>
+        </HomeHero>
 
-      <View style={{ alignItems: "center", marginTop: spacing.md }}>
-        <Button onPress={() => router.push("/play/select-course")}>Start a Round</Button>
-      </View>
+        <View style={{ alignItems: "center" }}>
+          <Button onPress={() => router.push("/play/select-course")}>Start a round</Button>
+        </View>
 
-      {recCounts.wins + recCounts.opportunities > 0 ? (
-        <Section label="NOTES ON YOUR GAME">
-          <Card onPress={() => router.push("/recommendations")}>
-            <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between" }}>
-              <View style={{ flex: 1, gap: spacing.xxs }}>
-                <Heading>{formatRecHeadline(recCounts.wins, recCounts.opportunities)}</Heading>
-                <Caption>{formatRecSubtitle(recCounts.wins, recCounts.opportunities)}</Caption>
+        {recCounts.wins + recCounts.opportunities > 0 ? (
+          <Section label="NOTES ON YOUR GAME">
+            <Card onPress={() => router.push("/recommendations")}>
+              <View
+                style={{
+                  flexDirection: "row",
+                  alignItems: "center",
+                  justifyContent: "space-between",
+                }}
+              >
+                <View style={{ flex: 1, gap: spacing.xxs, paddingRight: spacing.md }}>
+                  <Heading>{formatRecHeadline(recCounts.wins, recCounts.opportunities)}</Heading>
+                  <Caption>{formatRecSubtitle(recCounts.wins, recCounts.opportunities)}</Caption>
+                </View>
+                <ChevronRight color={colors.primary} size={22} strokeWidth={1.5} />
               </View>
-              <Body color="primary">›</Body>
+            </Card>
+          </Section>
+        ) : null}
+
+        {recent.length > 0 ? (
+          <Section label="LATELY">
+            <View style={{ gap: spacing.sm }}>
+              {recent.map(({ round, course, delta }) => (
+                <RecentRoundRow
+                  key={round.id}
+                  round={round}
+                  course={course}
+                  delta={delta}
+                  onPress={() =>
+                    router.push({ pathname: "/rounds/[id]", params: { id: String(round.id) } })
+                  }
+                />
+              ))}
             </View>
-          </Card>
-        </Section>
-      ) : null}
+          </Section>
+        ) : null}
 
-      {recent.length > 0 ? (
-        <Section label="LATELY">
-          {recent.map(({ round, course, delta }) => (
-            <RecentRoundRow
-              key={round.id}
-              round={round}
-              course={course}
-              delta={delta}
-              onPress={() =>
-                router.push({ pathname: "/rounds/[id]", params: { id: String(round.id) } })
-              }
-            />
-          ))}
-        </Section>
-      ) : null}
-
-      <View style={{ alignItems: "center", marginTop: spacing.lg, gap: spacing.xs }}>
-        <Link href="/search">
-          <Caption color="primary">Find a course</Caption>
-        </Link>
-        <Link href="/debug">
-          <Caption>Debug</Caption>
-        </Link>
-      </View>
+        <View style={{ alignItems: "center", marginTop: spacing.md, gap: spacing.sm }}>
+          <Link href="/search">
+            <BodySm color="primary">Find a course</BodySm>
+          </Link>
+          <Link href="/debug">
+            <BodySm>Debug</BodySm>
+          </Link>
+        </View>
+      </StaggerEntry>
     </Screen>
   );
 }
@@ -174,18 +191,18 @@ function RecentRoundRow({
 }) {
   const playedDate = new Date(round.played_at).toLocaleDateString();
   return (
-    <Card onPress={onPress}>
-      <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between" }}>
-        <View style={{ flex: 1, gap: 2 }}>
-          <Heading numberOfLines={1}>{course?.name ?? "Course"}</Heading>
+    <Card onPress={onPress} padding={spacing.md + spacing.xs}>
+      <View
+        style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between" }}
+      >
+        <View style={{ flex: 1, gap: 2, paddingRight: spacing.md }}>
+          <SerifBody numberOfLines={1}>{course?.name ?? "Course"}</SerifBody>
           <Caption>{playedDate}</Caption>
         </View>
-        <View style={{ alignItems: "flex-end", gap: spacing.xxs }}>
-          <Caption>
-            {round.differential != null
-              ? `Counted ${round.differential.toFixed(1)}`
-              : "Didn't count"}
-          </Caption>
+        <View style={{ alignItems: "flex-end", gap: spacing.xs }}>
+          <Body color="text" tabular>
+            {round.differential != null ? round.differential.toFixed(1) : "—"}
+          </Body>
           <DeltaBadge delta={delta} />
         </View>
       </View>
@@ -194,15 +211,36 @@ function RecentRoundRow({
 }
 
 function DeltaBadge({ delta }: { delta: number | null }) {
-  if (delta === null) return <Pill variant="neutral" outline>—</Pill>;
+  if (delta === null) {
+    return (
+      <Pill variant="neutral" outline>
+        <View style={{ flexDirection: "row", alignItems: "center", gap: 4 }}>
+          <Minus color={colors.textMuted} size={11} strokeWidth={1.75} />
+        </View>
+      </Pill>
+    );
+  }
   const rounded = Math.round(delta * 10) / 10;
-  if (rounded === 0) return <Pill variant="neutral">No change</Pill>;
-  const arrow = rounded < 0 ? "↓" : "↑";
-  const variant: "positive" | "attention" = rounded < 0 ? "positive" : "attention";
-  void colors;
+  if (rounded === 0) {
+    return <Pill variant="neutral">No change</Pill>;
+  }
+  const isDown = rounded < 0;
+  const Icon = isDown ? ArrowDown : ArrowUp;
+  const variant: "positive" | "attention" = isDown ? "positive" : "attention";
   return (
     <Pill variant={variant}>
-      {arrow} {Math.abs(rounded).toFixed(1)}
+      <View style={{ flexDirection: "row", alignItems: "center", gap: 4 }}>
+        <Icon color={isDown ? colors.textOnPrimary : "#1A1A1A"} size={11} strokeWidth={2} />
+        <View style={{ marginTop: -1 }}>
+          <Caption
+            color={isDown ? "textOnPrimary" : "text"}
+            style={{ fontSize: 11, lineHeight: 14, fontFamily: "Inter_500Medium", letterSpacing: 1.32 }}
+            tabular
+          >
+            {Math.abs(rounded).toFixed(1)}
+          </Caption>
+        </View>
+      </View>
     </Pill>
   );
 }

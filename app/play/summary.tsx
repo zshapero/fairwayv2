@@ -1,6 +1,7 @@
 import { router, useLocalSearchParams } from "expo-router";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { ActivityIndicator, Alert, View } from "react-native";
+import * as Haptics from "expo-haptics";
 
 import * as holeScoresRepo from "@/core/db/repositories/holeScores";
 import * as roundsRepo from "@/core/db/repositories/rounds";
@@ -18,14 +19,15 @@ import { HandicapMovementCard } from "@/components/HandicapMovementCard";
 import { runEngine } from "@/services/recommendationsRunner";
 import {
   Body,
+  BodySm,
   Button,
   Card,
   Caption,
-  Heading,
+  Display,
   Micro,
   Screen,
   Section,
-  Title,
+  StaggerEntry,
 } from "@/components";
 import { colors, spacing } from "@/design/tokens";
 
@@ -102,6 +104,7 @@ export default function SummaryScreen() {
     try {
       const result = await saveCompletedRound(input);
       setSavedSummary(result);
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => {});
       void runEngine(input.playerId).catch((err) => {
         if (__DEV__) console.warn("recommendation engine failed", err);
       });
@@ -159,60 +162,73 @@ export default function SummaryScreen() {
 
   return (
     <Screen>
-      <Section label="HOW IT COUNTED">
-        <HandicapMovementCard
-          priorDifferentials={input.priorDifferentials}
-          newDifferential={summary.scoreDifferential}
-          onPress={
-            savedSummary
-              ? () =>
-                  router.push({ pathname: "/rounds/[id]", params: { id: String(input.roundId) } })
-              : undefined
-          }
-        />
-      </Section>
+      <StaggerEntry>
+        <Section label="HOW IT COUNTED">
+          <HandicapMovementCard
+            priorDifferentials={input.priorDifferentials}
+            newDifferential={summary.scoreDifferential}
+            onPress={
+              savedSummary
+                ? () =>
+                    router.push({ pathname: "/rounds/[id]", params: { id: String(input.roundId) } })
+                : undefined
+            }
+          />
+        </Section>
 
-      <Section label="HOW YOU PLAYED">
-        <Card>
-          <View style={{ flexDirection: "row", justifyContent: "space-between" }}>
-            <Stat label="Score" value={summary.grossScore} />
-            <Stat label="Counted as" value={summary.adjustedGrossScore} />
-            <Stat label="Differential" value={summary.scoreDifferential.toFixed(1)} />
-            <Stat label="Strokes given" value={summary.courseHandicap} />
-          </View>
-        </Card>
-      </Section>
+        <Section label="HOW YOU PLAYED">
+          <Card padding={spacing.lg + spacing.xs}>
+            <View
+              style={{
+                flexDirection: "row",
+                justifyContent: "space-between",
+                gap: spacing.md,
+              }}
+            >
+              <Stat label="Score" value={summary.grossScore} />
+              <Stat label="Counted as" value={summary.adjustedGrossScore} />
+              <Stat label="Differential" value={summary.scoreDifferential.toFixed(1)} />
+              <Stat label="Strokes given" value={summary.courseHandicap} />
+            </View>
+          </Card>
+        </Section>
 
-      {savedSummary ? (
-        <Card>
-          <Caption>Saved. Tap the card above for the full story.</Caption>
-          <View style={{ marginTop: spacing.md, alignItems: "flex-start" }}>
-            <Button onPress={() => router.replace("/")}>Done</Button>
+        {savedSummary ? (
+          <Card>
+            <BodySm>Saved. Tap the card above for the full story.</BodySm>
+            <View style={{ marginTop: spacing.md, alignItems: "flex-start" }}>
+              <Button onPress={() => router.replace("/")}>Done</Button>
+            </View>
+          </Card>
+        ) : (
+          <View style={{ flexDirection: "row", gap: spacing.sm }}>
+            <Button variant="secondary" onPress={handleDiscard} style={{ flex: 1 }} haptic>
+              Don&apos;t save
+            </Button>
+            <Button onPress={handleSave} disabled={saving} style={{ flex: 2 }}>
+              {saving ? "Saving…" : "Save round"}
+            </Button>
           </View>
-        </Card>
-      ) : (
-        <View style={{ flexDirection: "row", gap: spacing.sm }}>
-          <Button variant="secondary" onPress={handleDiscard} style={{ flex: 1 }}>
-            Don&apos;t save
-          </Button>
-          <Button onPress={handleSave} disabled={saving} style={{ flex: 2 }}>
-            {saving ? "Saving…" : "Save round"}
-          </Button>
-        </View>
-      )}
+        )}
+      </StaggerEntry>
     </Screen>
   );
 }
 
 function Stat({ label, value }: { label: string; value: string | number }) {
   return (
-    <View style={{ alignItems: "flex-start", gap: 2 }}>
-      <Micro>{label}</Micro>
-      <Title color="primary" style={{ fontSize: 24, lineHeight: 28 }}>
+    <View style={{ alignItems: "flex-start", gap: spacing.xxs, flexShrink: 1 }}>
+      <Micro style={{ opacity: 0.7 }}>{label}</Micro>
+      <Display
+        color="primary"
+        tabular
+        style={{ fontSize: 32, lineHeight: 36, letterSpacing: -0.4 }}
+      >
         {value}
-      </Title>
+      </Display>
     </View>
   );
 }
 
-void Heading;
+// keep imports tidy (reference for the linter)
+void Body;

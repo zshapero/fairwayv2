@@ -1,28 +1,33 @@
 import type { ReactNode } from "react";
-import { Platform, type StyleProp, type ViewStyle, View } from "react-native";
+import { Platform, type StyleProp, View, type ViewStyle } from "react-native";
 import { BlurView } from "expo-blur";
 
-import { colors, radii, shadows, spacing } from "@/design/tokens";
+import { colors, flattenShadow, radii, shadows, spacing } from "@/design/tokens";
 
 interface GlassCardProps {
   children: ReactNode;
-  /** Defaults to `spacing.lg` (24). */
+  /** Defaults to `spacing.lg` (24). Hero glass cards use `spacing.xl` (32). */
   padding?: number;
-  /** BlurView intensity 0-100. Defaults to 40. */
+  /** BlurView intensity 0-100. Defaults to 80 (≈40px backdrop blur). */
   intensity?: number;
   className?: string;
   style?: StyleProp<ViewStyle>;
 }
 
 /**
- * Hero card with a frosted-glass background. Layers BlurView (iOS-strong,
- * Android-best-effort) under a 72% white tint so colour and contrast stay
- * predictable across platforms.
+ * Hero card with a frosted-glass background.
+ *
+ * Layers:
+ *   1. BlurView (intensity 80 ≈ 40px backdrop blur on iOS).
+ *   2. 76% white tint.
+ *   3. 1px white-12% inset highlight on the top edge to suggest light hitting
+ *      the glass — the difference between "white card" and "glass card."
+ *   4. Soft layered shadow (card + hero) for depth.
  */
 export function GlassCard({
   children,
-  padding = spacing.lg,
-  intensity = 40,
+  padding = spacing.xl,
+  intensity = 80,
   className,
   style,
 }: GlassCardProps) {
@@ -31,11 +36,11 @@ export function GlassCard({
       className={className}
       style={[
         {
-          borderRadius: radii.md,
+          borderRadius: radii.lg,
           overflow: "hidden",
-          borderWidth: 1,
-          borderColor: "rgba(0,0,0,0.08)",
-          ...shadows.elevated,
+          borderWidth: 0.5,
+          borderColor: colors.cardBorder,
+          ...flattenShadow(shadows.card, shadows.hero),
         },
         style,
       ]}
@@ -56,6 +61,18 @@ export function GlassCard({
       >
         {children}
       </View>
+      {/* Top-edge inset highlight, masked into the rounded corners. */}
+      <View
+        pointerEvents="none"
+        style={{
+          position: "absolute",
+          top: 0,
+          left: 0,
+          right: 0,
+          height: 1,
+          backgroundColor: colors.glassHighlight,
+        }}
+      />
     </View>
   );
 }
