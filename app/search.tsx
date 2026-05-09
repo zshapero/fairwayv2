@@ -175,7 +175,7 @@ function ClubRow({
           </Text>
         ) : null}
         <Text className="mt-1 text-xs text-fairway-700">
-          {expanded ? "Hide courses" : `${club.courses.length} course(s) — tap to view`}
+          {expanded ? "Hide courses" : `${club.courses.length} course(s), tap to view`}
         </Text>
       </Pressable>
 
@@ -191,7 +191,7 @@ function ClubRow({
                 {importState?.status === "success" && importState.result ? (
                   <View className="mt-2 gap-2">
                     <Text className="text-xs text-green-700">
-                      {importState.result.updated ? "Updated" : "Imported"} — {importState.result.teesImported}{" "}
+                      {importState.result.updated ? "Updated" : "Imported"}: {importState.result.teesImported}{" "}
                       tees, {importState.result.holesImported} holes.
                     </Text>
                     <View className="flex-row gap-2">

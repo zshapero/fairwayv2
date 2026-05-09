@@ -92,12 +92,12 @@ export default function HomeScreen() {
   return (
     <Screen>
       <View style={{ alignItems: "center", paddingTop: spacing.xl, gap: spacing.xs }}>
-        <Micro color="accent">HANDICAP INDEX</Micro>
+        <Micro color="accent">YOUR INDEX</Micro>
         <Display color="primary">{indexLabel}</Display>
         <Caption style={{ textAlign: "center" }}>
           {handicapIndex === null
-            ? "Play 3 rounds to establish your index."
-            : "Based on best 8 of last 20 rounds."}
+            ? "Three rounds in and we'll have a number for you."
+            : "Your best 8 of 20."}
         </Caption>
       </View>
 
@@ -106,7 +106,7 @@ export default function HomeScreen() {
       </View>
 
       {recCounts.wins + recCounts.opportunities > 0 ? (
-        <Section label="RECOMMENDATIONS">
+        <Section label="NOTES ON YOUR GAME">
           <Card onPress={() => router.push("/recommendations")}>
             <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between" }}>
               <View style={{ flex: 1, gap: spacing.xxs }}>
@@ -120,7 +120,7 @@ export default function HomeScreen() {
       ) : null}
 
       {recent.length > 0 ? (
-        <Section label="RECENT ROUNDS">
+        <Section label="LATELY">
           {recent.map(({ round, course, delta }) => (
             <RecentRoundRow
               key={round.id}
@@ -137,7 +137,7 @@ export default function HomeScreen() {
 
       <View style={{ alignItems: "center", marginTop: spacing.lg, gap: spacing.xs }}>
         <Link href="/search">
-          <Caption color="primary">Search Courses</Caption>
+          <Caption color="primary">Find a course</Caption>
         </Link>
         <Link href="/debug">
           <Caption>Debug</Caption>
@@ -149,16 +149,16 @@ export default function HomeScreen() {
 
 function formatRecHeadline(wins: number, opportunities: number): string {
   if (wins > 0 && opportunities > 0) {
-    return `${wins} ${wins === 1 ? "win" : "wins"}, ${opportunities} to work on`;
+    return `A few things we've noticed (${opportunities} to work on, ${wins} going well)`;
   }
-  if (wins > 0) return `${wins} ${wins === 1 ? "win" : "wins"} this week`;
-  return `${opportunities} ${opportunities === 1 ? "opportunity" : "opportunities"}`;
+  if (wins > 0) return `Some things going well (${wins})`;
+  return `A few things to work on (${opportunities})`;
 }
 
 function formatRecSubtitle(wins: number, opportunities: number): string {
-  if (wins > 0 && opportunities > 0) return "What's working, and where to focus next";
-  if (wins > 0) return "Patterns the engine is celebrating";
-  return "Patterns the engine spotted in your recent rounds";
+  if (wins > 0 && opportunities > 0) return "Patterns from your last few rounds.";
+  if (wins > 0) return "Patterns worth protecting.";
+  return "Patterns from your last few rounds.";
 }
 
 function RecentRoundRow({
@@ -182,10 +182,9 @@ function RecentRoundRow({
         </View>
         <View style={{ alignItems: "flex-end", gap: spacing.xxs }}>
           <Caption>
-            Diff{" "}
-            <Caption color="text">
-              {round.differential != null ? round.differential.toFixed(1) : "—"}
-            </Caption>
+            {round.differential != null
+              ? `Counted ${round.differential.toFixed(1)}`
+              : "Didn't count"}
           </Caption>
           <DeltaBadge delta={delta} />
         </View>

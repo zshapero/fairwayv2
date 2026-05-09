@@ -45,9 +45,10 @@ describe("rule outputs include benchmark, confidence, priority, and type", () =>
     expect(result?.priority).toBeGreaterThan(0);
     expect(result?.priority).toBeLessThanOrEqual(100);
     // The bracket benchmark for handicap 18 fairways is 0.45; the rule
-    // surfaces the 50/50 split benchmark and the directional ratio.
+    // surfaces the 50/50 split benchmark on the player value and the
+    // bracket fairway rate in the detail copy.
     expect(result?.benchmarkValue).toBe(0.5);
-    expect(result?.summary).toMatch(/45%/); // bracket fairways benchmark mentioned
+    expect(result?.detail).toMatch(/45%/); // bracket fairway-hit benchmark mentioned
     expect(result?.playerValueLabel).toContain("right");
   });
 

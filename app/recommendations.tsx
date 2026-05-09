@@ -73,8 +73,8 @@ export default function RecommendationsScreen() {
 
   const handleDismiss = useCallback((rec: Recommendation) => {
     Alert.alert(
-      "Dismiss this recommendation?",
-      "We'll stop showing it unless the pattern keeps showing up.",
+      "Hide this one?",
+      "We'll stop showing it unless the pattern shows up again.",
       [
         { text: "Cancel", style: "cancel" },
         {
@@ -116,7 +116,7 @@ export default function RecommendationsScreen() {
 
   return (
     <Screen>
-      <Title color="primary">Recommendations</Title>
+      <Title color="primary">Notes on your game</Title>
 
       {error ? (
         <Card>
@@ -132,13 +132,13 @@ export default function RecommendationsScreen() {
 
       {items && items.length === 0 && !error ? (
         <EmptyState
-          title="No patterns yet"
-          description="Post 5 to 10 rounds and we'll spot patterns and strengths in your game."
+          title="Nothing to flag yet"
+          description="Play a few more rounds and we'll start spotting patterns."
         />
       ) : null}
 
       {sections && sections.positives.length > 0 ? (
-        <Section label="WHAT'S WORKING">
+        <Section label="GOING WELL">
           {sections.positives.map((rec) => (
             <PositiveCard
               key={rec.id}
@@ -152,7 +152,7 @@ export default function RecommendationsScreen() {
       ) : null}
 
       {sections && sections.topOpportunities.length > 0 ? (
-        <Section label="TOP OPPORTUNITIES">
+        <Section label="THINGS TO WORK ON">
           {sections.topOpportunities.map((rec) => (
             <OpportunityCard
               key={rec.id}
@@ -181,8 +181,8 @@ export default function RecommendationsScreen() {
           >
             <Caption color="primary">
               {showAllOpportunities
-                ? "Hide other opportunities"
-                : `Show more opportunities (${sections.moreOpportunities.length})`}
+                ? "Hide the rest"
+                : `Show ${sections.moreOpportunities.length} more`}
             </Caption>
           </Pressable>
           {showAllOpportunities
@@ -205,11 +205,11 @@ export default function RecommendationsScreen() {
 }
 
 function ConfidencePill({ level }: { level: ConfidenceLevel }) {
-  if (level === "high") return <Pill variant="positive">High confidence</Pill>;
-  if (level === "moderate") return <Pill variant="attention">Moderate</Pill>;
+  if (level === "high") return <Pill variant="positive">Strong signal</Pill>;
+  if (level === "moderate") return <Pill variant="attention">Worth watching</Pill>;
   return (
     <Pill variant="neutral" outline>
-      Emerging
+      Early signal
     </Pill>
   );
 }
@@ -239,14 +239,14 @@ function PositiveCard({
                 padding: spacing.md,
               }}
             >
-              <Micro color="accent">THE MATH</Micro>
+              <Micro color="accent">WHY WE THINK SO</Micro>
               <Body style={{ marginTop: 4 }}>{rec.detail}</Body>
             </View>
             {rec.drill ? (
               <View
                 style={{ backgroundColor: colors.surfaceDeep, borderRadius: 14, padding: spacing.md }}
               >
-                <Micro color="accent">KEEP GOING</Micro>
+                <Micro color="accent">KEEP IT UP</Micro>
                 <Body style={{ marginTop: 4 }}>{rec.drill}</Body>
               </View>
             ) : null}
@@ -293,7 +293,7 @@ function OpportunityCard({
                   padding: spacing.md,
                 }}
               >
-                <Micro color="accent">THE MATH</Micro>
+                <Micro color="accent">WHY WE THINK SO</Micro>
                 <Body style={{ marginTop: 4 }}>{rec.detail}</Body>
               </View>
               {rec.drill ? (
@@ -304,13 +304,13 @@ function OpportunityCard({
                     padding: spacing.md,
                   }}
                 >
-                  <Micro color="accent">DRILL</Micro>
+                  <Micro color="accent">TRY THIS</Micro>
                   <Body style={{ marginTop: 4 }}>{rec.drill}</Body>
                 </View>
               ) : null}
               <View style={{ flexDirection: "row", gap: spacing.xs }}>
                 <Button onPress={onPracticed}>
-                  {practiced ? "Logged ✓" : "Practiced today"}
+                  {practiced ? "Logged ✓" : "Did this today"}
                 </Button>
                 <Button variant="ghost" onPress={onDismiss}>
                   Dismiss

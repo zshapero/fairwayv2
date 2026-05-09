@@ -279,32 +279,31 @@ export default function ScoreScreen() {
     <Screen>
       <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center" }}>
         <Caption>
-          Total {currentTotal} ·{" "}
+          Through this hole {currentTotal} ·{" "}
           <Caption color="primary">
             {relative === 0 ? "E" : relative > 0 ? `+${relative}` : relative}
           </Caption>
         </Caption>
         <Pressable onPress={handleSaveAndExit} disabled={saving}>
-          <Caption color="primary">Save and continue later</Caption>
+          <Caption color="primary">Pick this up later</Caption>
         </Pressable>
       </View>
 
       <GlassCard>
         <View style={{ alignItems: "center", gap: spacing.xs }}>
-          <Micro color="accent">
-            Hole {currentHole.hole_number} of {totalHoles}
-          </Micro>
+          <Micro color="accent">HOLE {currentHole.hole_number}</Micro>
           <Display color="primary">{currentHole.hole_number}</Display>
           <Heading color="text">Par {par}</Heading>
           <Caption>
-            {currentHole.yardage ? `${currentHole.yardage} yds · ` : ""}HCP {currentHole.stroke_index}
+            {currentHole.yardage ? `${currentHole.yardage}y · ` : ""}of {totalHoles} · HCP{" "}
+            {currentHole.stroke_index}
           </Caption>
         </View>
       </GlassCard>
 
       <Card>
         <View style={{ alignItems: "center", gap: spacing.md }}>
-          <Micro>Strokes</Micro>
+          <Micro>SCORE</Micro>
           <View style={{ flexDirection: "row", alignItems: "center", gap: spacing.xl }}>
             <StepperButton
               label="−"
@@ -340,7 +339,7 @@ export default function ScoreScreen() {
           backgroundColor: colors.surfaceDeep,
         }}
       >
-        <Heading>Hole details</Heading>
+        <Heading>How it played</Heading>
         <Caption color="primary">{detailsExpanded ? "Hide" : "Show"}</Caption>
       </Pressable>
 
@@ -348,11 +347,11 @@ export default function ScoreScreen() {
         <View style={{ gap: spacing.md }}>
           {isPar4Or5 ? (
             <PillRow
-              label="Fairway"
+              label="Fairway?"
               options={[
                 { value: "hit", label: "Hit", tone: "good" },
-                { value: "left", label: "Missed Left", tone: "miss" },
-                { value: "right", label: "Missed Right", tone: "miss" },
+                { value: "left", label: "Left", tone: "miss" },
+                { value: "right", label: "Right", tone: "miss" },
               ]}
               selected={fairwayStateOf(currentEntry)}
               onSelect={(next) =>
@@ -362,9 +361,9 @@ export default function ScoreScreen() {
           ) : null}
 
           <PillRow
-            label="Green in regulation"
+            label={par >= 5 ? "Green in 3?" : par === 3 ? "Green?" : "Green in 2?"}
             options={[
-              { value: "hit", label: "Hit", tone: "good" },
+              { value: "hit", label: "Yes", tone: "good" },
               { value: "left", label: "Left", tone: "miss" },
               { value: "right", label: "Right", tone: "miss" },
               { value: "short", label: "Short", tone: "miss" },
@@ -375,9 +374,9 @@ export default function ScoreScreen() {
           />
 
           <PillRow
-            label="Sand"
+            label="Bunker shot?"
             options={[
-              { value: "no", label: "No sand", tone: "neutral" },
+              { value: "no", label: "No", tone: "neutral" },
               { value: "yes", label: "Yes", tone: "sand" },
             ]}
             selected={currentEntry.hit_from_sand === 1 ? "yes" : "no"}
@@ -395,7 +394,7 @@ export default function ScoreScreen() {
             onChange={(v) => updateEntry(currentHole.hole_number, { putts: v })}
           />
           <OptionalNumber
-            label="Penalty strokes"
+            label="Penalties"
             value={currentEntry.penalty_strokes}
             min={0}
             max={10}
@@ -414,7 +413,7 @@ export default function ScoreScreen() {
           Back
         </Button>
         <Button onPress={handleNext} disabled={saving} style={{ flex: 2 }}>
-          {holeIndex >= totalHoles - 1 ? "Finish round" : "Next hole"}
+          {holeIndex >= totalHoles - 1 ? "Done" : "Next hole"}
         </Button>
       </View>
     </Screen>
@@ -473,7 +472,7 @@ function OptionalNumber({ label, value, min, max, onChange }: OptionalNumberProp
           }}
         >
           <Micro style={{ color: enabled ? colors.textOnPrimary : colors.textMuted }}>
-            {enabled ? "Track" : "Off"}
+            {enabled ? "Tracking" : "Skip"}
           </Micro>
         </Pressable>
       </View>

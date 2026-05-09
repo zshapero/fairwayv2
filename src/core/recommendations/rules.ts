@@ -1,11 +1,12 @@
 /**
  * The 16 deterministic rules behind Fairway's recommendation engine.
  *
- * 12 "opportunity" rules surface things to fix (slicing, three-putts, etc).
- * 4 motivational rules surface "strengths" and "milestones" (improving
- * putting, dropping handicap, personal best). Every rule is a pure function
- * of `RuleContext` → `RuleOutput | null`. The summary text always references
- * the player's handicap-bracket benchmark so findings are contextualised.
+ * 12 "opportunity" rules surface things to work on (slicing, three-putts,
+ * scrambling). 4 motivational rules surface "strengths" and "milestones"
+ * (improving putting, dropping handicap, personal best). Every rule is a
+ * pure function of `RuleContext` → `RuleOutput | null`. The voice is
+ * observational and conversational — like a smart friend reading the
+ * scorecard, not a database.
  */
 
 import { computeConfidence } from "./confidence";
@@ -13,7 +14,6 @@ import { computePriority } from "./priority";
 import {
   selectDrillVariant,
   type DrillVariant,
-  type RoundHole,
   type RoundWithHoleScores,
   type Rule,
   type RuleContext,
@@ -65,17 +65,20 @@ const PUTTING_REGRESSION_DRILLS: DrillVariant[] = [
   {
     id: "putting_regression_basic",
     level: "beginner",
-    drill: "Lag putts: set up 5 balls at 30 feet, try to leave each within 3 feet. 10 minutes before every round.",
+    drill:
+      "Five balls from 30 feet, ten minutes before each round. Goal: every one finishes inside 3 feet.",
   },
   {
     id: "putting_regression_intermediate",
     level: "mid",
-    drill: "Lag putts at 30/40/50 feet (3 balls each). Track how many finish within 3 feet, then 6 feet. Aim for 80% inside 6.",
+    drill:
+      "Three balls each at 30, 40, 50 feet. Aim for 80% inside 6 feet. Track it across a few sessions.",
   },
   {
     id: "putting_regression_advanced",
     level: "advanced",
-    drill: "10 minutes of speed control: 3 balls at 30, 40, 50 feet to a hole. Then 5 minutes of 6-foot pressure putts — make 10 in a row before leaving.",
+    drill:
+      "Speed work first: three balls at 30, 40, 50 feet. Then 10 must-make 6-footers in a row before you walk off.",
   },
 ];
 
@@ -83,17 +86,20 @@ const FAIRWAY_RIGHT_DRILLS: DrillVariant[] = [
   {
     id: "slice_alignment_basic",
     severity: "mild",
-    drill: "Range session: place an alignment stick 6 inches outside your ball, parallel to target. Swing without hitting it. Trains an in-to-out path.",
+    drill:
+      "Range drill: alignment stick six inches outside the ball, parallel to the target line. Don't hit it. That trains an in-to-out path.",
   },
   {
     id: "slice_alignment_grip",
     severity: "moderate",
-    drill: "Strengthen your grip a touch (rotate hands clockwise). Hit 30 balls with an alignment stick outside the ball — no slice contact.",
+    drill:
+      "Strengthen the grip a touch (rotate hands clockwise). Hit 30 balls with the alignment stick out there. No slice contact.",
   },
   {
     id: "slice_lesson",
     severity: "severe",
-    drill: "Book a 30-minute lesson focused on grip and swing path. Until then: 3-quarter swings only, focus on a draw shot shape.",
+    drill:
+      "This one's worth a 30-minute lesson on grip and path. Until then, three-quarter swings, draw shape only.",
   },
 ];
 
@@ -101,17 +107,20 @@ const FAIRWAY_LEFT_DRILLS: DrillVariant[] = [
   {
     id: "pull_rotation_basic",
     severity: "mild",
-    drill: "On the range, focus on full body rotation through impact. Try a pause-at-top drill to slow your transition. Hit 30 balls focused on this.",
+    drill:
+      "Pause-at-top drill on the range, 30 balls. Slow the transition, full rotation through the ball.",
   },
   {
     id: "pull_rotation_extended",
     severity: "moderate",
-    drill: "Pause-at-top drill plus an alignment stick along the toes. Hit 30 balls aiming a club length right of target.",
+    drill:
+      "Pause-at-top plus an alignment stick along your toes. Aim a club length right of target and trust it.",
   },
   {
     id: "pull_lesson",
     severity: "severe",
-    drill: "Pulling consistently usually means an over-the-top transition. Book a lesson and ask for a check on takeaway and shoulder turn.",
+    drill:
+      "Consistent pulling usually means the upper body's racing the lower. Worth a lesson on takeaway and shoulder turn.",
   },
 ];
 
@@ -119,35 +128,40 @@ const APPROACH_DRILLS: Record<"left" | "right" | "short" | "long", DrillVariant[
   short: [
     {
       id: "approach_short_basic",
-      drill: "Club up one and swing 80%. The flag is rarely worth a full effort with the wrong club.",
+      drill: "Take one more club. Swing 80%. The flag is rarely worth a full effort.",
     },
     {
       id: "approach_short_advanced",
       level: "advanced",
-      drill: "Track carry distances per club this week. Hit a 7-iron 10 times on the launch monitor — note carry, then add one club for any approach inside that distance.",
+      drill:
+        "Track real carry distances per club this week, not the marketing yardage. Add a club to anything inside that number.",
     },
   ],
   long: [
     {
       id: "approach_long_basic",
-      drill: "Stop trying to flush every iron. Take an extra club, swing 75%. Distance comes from solid contact, not speed.",
+      drill:
+        "Stop trying to flush every iron. One more club, swing 75%. Distance comes from contact, not speed.",
     },
     {
       id: "approach_long_advanced",
       level: "advanced",
-      drill: "75% swing drill: hit 20 balls each with 6, 7, 8 iron at three-quarter speed. Note carry. Use that number on course.",
+      drill:
+        "Twenty balls each with 6, 7, 8 iron at three-quarter speed. Note the carry. Use that on course.",
     },
   ],
   left: [
     {
       id: "approach_left_basic",
-      drill: "Alignment stick drill on full swings. Place one along your toe line and another at the target. Confirm both before every shot.",
+      drill:
+        "Two alignment sticks: one at your toes, one at the target. Set them before every shot for a few range sessions.",
     },
   ],
   right: [
     {
       id: "approach_right_basic",
-      drill: "Alignment stick drill on full swings. Place one along your toe line and another at the target. Confirm both before every shot.",
+      drill:
+        "Two alignment sticks: one at your toes, one at the target. Set them before every shot for a few range sessions.",
     },
   ],
 };
@@ -156,97 +170,113 @@ const SAND_DRILLS: DrillVariant[] = [
   {
     id: "sand_basic",
     severity: "mild",
-    drill: "10 minutes of bunker work twice a week. Practice greenside (high lofted, splash sand under ball) and fairway bunker (clean contact, less wrist) shots.",
+    drill:
+      "Ten minutes of bunker work, twice a week. Greenside splash and a few clean fairway-bunker shots.",
   },
   {
     id: "sand_focus",
     severity: "moderate",
-    drill: "20 minutes of greenside bunker drills twice a week. Draw a line in sand, hit the line every time. Then 10 fairway-bunker shots with a 7-iron.",
+    drill:
+      "Twenty minutes of greenside bunker, twice a week. Draw a line in the sand and hit it every time. Then 10 fairway-bunker shots with a 7-iron.",
   },
   {
     id: "sand_lesson",
     severity: "severe",
-    drill: "Spending 25%+ of holes in sand suggests a tee-shot pattern. Book a lesson focused on driver dispersion. Pure bunker repetition won't fix the cause.",
+    drill:
+      "If you're in sand on a quarter of holes, it's probably the tee shot. Worth a lesson on driver dispersion. Bunker reps alone won't fix the cause.",
   },
 ];
 
 const FRONT_NINE_DRILLS: DrillVariant[] = [
   {
     id: "front_nine_warmup",
-    drill: "Arrive 30 minutes earlier. Do 20 full swings, 10 chips, 5 minutes of putting before teeing off. Treat the warmup as part of the round.",
+    drill:
+      "Show up 30 minutes early. Twenty full swings, ten chips, five minutes of putting. Treat the warmup like part of the round.",
   },
   {
     id: "front_nine_advanced",
     level: "advanced",
-    drill: "Warmup with a launch-pattern: 5 wedges, 5 mid-irons, 5 drivers — each ending with a target. The first tee shot should be the 16th swing of the day, not the 1st.",
+    drill:
+      "Build a launch routine: five wedges, five mid-irons, five drivers, every one to a target. The first tee shot should be the 16th swing of the day.",
   },
 ];
 
 const THREE_PUTT_DRILLS: DrillVariant[] = [
   {
     id: "three_putt_basic",
-    drill: "Distance control: 15 minutes of 30-50 foot lag putts. Goal is to leave every one inside 3 feet. The first putt is the only putt that matters.",
+    drill:
+      "Fifteen minutes of 30-50 foot lag putts. Goal: every one finishes inside 3 feet. The first putt is the only one that matters.",
   },
   {
     id: "three_putt_advanced",
     level: "advanced",
-    drill: "Three-tier drill: 5 balls each at 30, 45, 60 feet. Track how many finish in a 3-foot circle. Aim for 80%. Then 10 must-make 4-footers to finish.",
+    drill:
+      "Five balls each at 30, 45, 60 feet. Track how many finish in a 3-foot circle. Aim for 80%. Then 10 must-make 4-footers to finish.",
   },
 ];
 
 const PENALTY_DRILLS: DrillVariant[] = [
   {
     id: "penalty_management",
-    drill: "Course management. Identify your three trouble holes. Plan conservative tee shots: club down, aim away from water/OB, take bogey out of contention.",
+    drill:
+      "Pick your three trouble holes. Plan a conservative tee shot for each: club down, aim away from the trouble, take bogey out of contention.",
   },
   {
     id: "penalty_advanced",
     level: "advanced",
     severity: "severe",
-    drill: "Walk every trouble hole on Google Maps the night before. Map a 'bail-out' for each. Commit to that line before stepping on the tee.",
+    drill:
+      "Walk the trouble holes on the satellite map the night before. Map a bail-out for each. Commit to that line before stepping on the tee.",
   },
 ];
 
 const PAR3_DRILLS: DrillVariant[] = [
   {
     id: "par3_range",
-    drill: "Range session with 6-9 irons. Pick four targets at different yardages. Hit 10 balls at each. Track how many land within 20 feet.",
+    drill:
+      "Pick four targets at par-3 yardages on the range. Ten balls each. Track how many land inside 20 feet.",
   },
   {
     id: "par3_advanced",
     level: "advanced",
-    drill: "Greens-in-regulation drill. 5 shots at every yardage from 130-180 in 10-yard increments. Count how many find the green. Aim for 60%.",
+    drill:
+      "Five shots at every yardage from 130-180 in 10-yard increments. Count how many find the green. Aim for 60%.",
   },
 ];
 
 const HARDEST_HOLE_DRILLS: DrillVariant[] = [
   {
     id: "hardest_mindset",
-    drill: "Mindset shift: on stroke index 1-6 holes, play for bogey, not par. Tee off conservative, layup if needed, accept the bogey. Big numbers come from trying to be the hero.",
+    drill:
+      "On stroke index 1-6 holes, play for bogey. Conservative tee, lay up if you need to, take double out of play. Big numbers come from chasing par here.",
   },
   {
     id: "hardest_advanced",
     level: "advanced",
-    drill: "Pre-round game plan: write a number for each stroke-index 1-6 hole (par, bogey, double). Hitting that number is the goal. Stop chasing birdies on hard holes.",
+    drill:
+      "Pre-round, write a number for each stroke-index 1-6 hole (par, bogey, double). Hitting that number is the goal. Stop trying to be the hero.",
   },
 ];
 
 const SCRAMBLING_DRILLS: DrillVariant[] = [
   {
     id: "scrambling_basic",
-    drill: "30 minutes of short game twice a week. 10 chips from 10 yards, 10 pitches from 30 yards, 10 bunker shots, 10 minutes of 5-foot putts. The fastest stroke savings on tour come from here.",
+    drill:
+      "Thirty minutes of short game, twice a week. 10 chips from 10 yards, 10 pitches from 30 yards, 10 bunker shots, 10 minutes of 5-foot putts.",
   },
   {
     id: "scrambling_advanced",
     level: "advanced",
-    drill: "Up-and-down practice game: drop 10 balls in random spots within 30 yards of a green. Count how many you get up-and-down. Repeat until 6/10 is normal.",
+    drill:
+      "Up-and-down game: drop 10 balls in random spots within 30 yards of a green. Count the up-and-downs. Repeat until 6/10 is normal.",
   },
 ];
 
 const RECENT_DECLINE_DRILLS: DrillVariant[] = [
   {
     id: "decline_lesson",
-    drill: "Time for a check-in. Visit a teaching pro for a 30-minute lesson focused on grip, alignment, posture, and ball position. Sometimes the basics drift.",
+    drill:
+      "Time for a check-in. Thirty-minute lesson on the basics: grip, alignment, posture, ball position. Sometimes those drift.",
   },
 ];
 
@@ -258,7 +288,10 @@ export const puttingRegression: Rule = (ctx) => {
   const { rounds, benchmarks } = ctx;
   if (rounds.length < 15) return null;
   const recent = rounds.slice(-5).map(totalPuttsForRound).filter((v): v is number => v !== null);
-  const previous = rounds.slice(-15, -5).map(totalPuttsForRound).filter((v): v is number => v !== null);
+  const previous = rounds
+    .slice(-15, -5)
+    .map(totalPuttsForRound)
+    .filter((v): v is number => v !== null);
   if (recent.length < 5 || previous.length < 10) return null;
 
   const recentAvg = average(recent);
@@ -273,15 +306,12 @@ export const puttingRegression: Rule = (ctx) => {
   const priority = computePriority(2.5, severityRatio, chronicityWeeks(rounds.slice(-5)));
   const variant = selectDrillVariant(PUTTING_REGRESSION_DRILLS, ctx.level, severity);
 
-  const benchmarkValue = benchmarks.putts;
-  const playerValue = recentAvg;
-
   return {
     ruleId: "putting_regression",
     type: "opportunity",
-    title: "Putting has slipped",
-    summary: `You're averaging ${recentAvg.toFixed(1)} putts/round in your last 5 — up ${delta.toFixed(1)} from the 10 before. Typical for your bracket is ${benchmarkValue.toFixed(0)}.`,
-    detail: `Last 5 rounds: ${recentAvg.toFixed(1)} putts/round. Previous 10 rounds: ${previousAvg.toFixed(1)} putts/round. The 1.5-stroke jump trips the rule, and the bracket benchmark sits at ${benchmarkValue.toFixed(0)} putts/round.`,
+    title: "Putts have crept up",
+    summary: `You're averaging ${recentAvg.toFixed(1)} putts per round lately, up from ${previousAvg.toFixed(1)} before. That's about ${delta.toFixed(1)} extra strokes a round on the green.`,
+    detail: `Your last 5 rounds: ${recentAvg.toFixed(1)} putts per round. The 10 before that: ${previousAvg.toFixed(1)}. A ${delta.toFixed(1)}-stroke jump trips this rule, and the typical for your bracket is ${benchmarks.putts.toFixed(0)}.`,
     drill: variant.drill,
     selectedDrillVariantId: variant.id,
     triggeringRoundIds: recentRoundIds(rounds, 5),
@@ -289,10 +319,10 @@ export const puttingRegression: Rule = (ctx) => {
     thresholdLabel: `+${delta.toFixed(1)} putts/round`,
     priority,
     confidence,
-    playerValue,
+    playerValue: recentAvg,
     playerValueLabel: `${recentAvg.toFixed(1)} putts/round`,
-    benchmarkValue,
-    benchmarkLabel: `${benchmarkValue.toFixed(0)} putts/round typical`,
+    benchmarkValue: benchmarks.putts,
+    benchmarkLabel: `${benchmarks.putts.toFixed(0)} typical`,
   };
 };
 
@@ -320,33 +350,43 @@ function fairwayMissTendency(ctx: RuleContext, side: "left" | "right"): RuleOutp
   const variants = side === "right" ? FAIRWAY_RIGHT_DRILLS : FAIRWAY_LEFT_DRILLS;
   const variant = selectDrillVariant(variants, ctx.level, severity);
 
-  const ruleId = side === "right" ? "slice_tendency" : "pull_tendency";
-  const title = side === "right" ? "Right-side miss pattern" : "Left-side miss pattern";
-
-  // Player fairway-hit rate vs benchmark, plus the directional ratio.
-  const fwHits = par4or5.filter((h) => h.fairway_hit === 1).length;
-  const fwAttempts = par4or5.filter((h) => h.fairway_hit !== null).length;
-  const playerFwPct = fwAttempts > 0 ? fwHits / fwAttempts : 0;
-
-  const sideName = side === "right" ? "right" : "left";
-
+  if (side === "right") {
+    return {
+      ruleId: "slice_tendency",
+      type: "opportunity",
+      title: "Missing right off the tee",
+      summary: `About ${pct(ratio)} of your missed fairways have gone right over your last 8 rounds.`,
+      detail: `Of ${misses.length} missed fairways recently, ${sideMisses} drifted right. Anything 60%+ to one side usually points at a swing-path or face-angle pattern. Players in your bracket land fairways at ${pct(benchmarks.fairways)} for context.`,
+      drill: variant.drill,
+      selectedDrillVariantId: variant.id,
+      triggeringRoundIds: recentRoundIds(rounds, 8),
+      thresholdValue: Math.round(ratio * 100) / 100,
+      thresholdLabel: `${pct(ratio)} right`,
+      priority,
+      confidence,
+      playerValue: ratio,
+      playerValueLabel: `${pct(ratio)} right`,
+      benchmarkValue: 0.5,
+      benchmarkLabel: "50/50 typical",
+    };
+  }
   return {
-    ruleId,
+    ruleId: "pull_tendency",
     type: "opportunity",
-    title,
-    summary: `${pct(ratio)} of your fairway misses go ${sideName}. Bracket fairway-hit benchmark is ${pct(benchmarks.fairways)}; you're at ${pct(playerFwPct)}.`,
-    detail: `Across the last 8 rounds you missed the fairway ${misses.length} times. ${sideMisses} (${pct(ratio)}) drifted ${sideName}. Anything 60%+ to one side flags a swing-path or face-angle pattern. For context, players in your bracket hit fairways at ${pct(benchmarks.fairways)}.`,
+    title: "Missing left off the tee",
+    summary: `About ${pct(ratio)} of your missed fairways have gone left over your last 8 rounds.`,
+    detail: `Of ${misses.length} missed fairways recently, ${sideMisses} pulled left. Anything 60%+ to one side usually points at a swing-path or face-angle pattern. Players in your bracket land fairways at ${pct(benchmarks.fairways)} for context.`,
     drill: variant.drill,
     selectedDrillVariantId: variant.id,
     triggeringRoundIds: recentRoundIds(rounds, 8),
     thresholdValue: Math.round(ratio * 100) / 100,
-    thresholdLabel: `${pct(ratio)} ${sideName}`,
+    thresholdLabel: `${pct(ratio)} left`,
     priority,
     confidence,
     playerValue: ratio,
-    playerValueLabel: `${pct(ratio)} miss ${sideName}`,
+    playerValueLabel: `${pct(ratio)} left`,
     benchmarkValue: 0.5,
-    benchmarkLabel: "50/50 split typical",
+    benchmarkLabel: "50/50 typical",
   };
 }
 
@@ -399,27 +439,33 @@ export const approachMissPattern: Rule = (ctx) => {
   const variant = selectDrillVariant(variants, ctx.level, severity);
 
   const titleByDir: Record<"left" | "right" | "short" | "long", string> = {
-    short: "Approaches missing short",
-    long: "Approaches sailing long",
+    short: "Coming up short on approaches",
+    long: "Sailing long on approaches",
     left: "Approaches drifting left",
     right: "Approaches drifting right",
+  };
+  const directionWord: Record<"left" | "right" | "short" | "long", string> = {
+    short: "short",
+    long: "long",
+    left: "left",
+    right: "right",
   };
 
   return {
     ruleId: "approach_miss_pattern",
     type: "opportunity",
     title: titleByDir[dominant],
-    summary: `${pct(ratio)} of your green misses go ${dominant}. Bracket GIR benchmark is ${pct(benchmarks.gir)} — addressing this directionality moves you toward it.`,
-    detail: `Across your last ${recent.length} rounds you missed the green ${total} times; ${dominantCount} (${pct(ratio)}) went ${dominant}. The rule fires when any single direction tops 50%.`,
+    summary: `When you miss the green, ${pct(ratio)} of those misses go ${directionWord[dominant]}.`,
+    detail: `Across your last ${recent.length} rounds you missed the green ${total} times. ${dominantCount} of those (${pct(ratio)}) went ${directionWord[dominant]}. Players in your bracket hit ${pct(benchmarks.gir)} of greens, so chasing this pattern is high-leverage.`,
     drill: variant.drill,
     selectedDrillVariantId: variant.id,
     triggeringRoundIds: recentRoundIds(rounds, 8),
     thresholdValue: Math.round(ratio * 100) / 100,
-    thresholdLabel: `${pct(ratio)} ${dominant}`,
+    thresholdLabel: `${pct(ratio)} ${directionWord[dominant]}`,
     priority,
     confidence,
     playerValue: ratio,
-    playerValueLabel: `${pct(ratio)} ${dominant}`,
+    playerValueLabel: `${pct(ratio)} ${directionWord[dominant]}`,
     benchmarkValue: benchmarks.gir,
     benchmarkLabel: `${pct(benchmarks.gir)} GIR typical`,
   };
@@ -449,9 +495,9 @@ export const sandFrequency: Rule = (ctx) => {
   return {
     ruleId: "sand_frequency",
     type: "opportunity",
-    title: "Spending too much time in bunkers",
-    summary: `You hit from sand on ${pct(ratio)} of holes recently. Bracket scrambling rate is ${pct(benchmarks.scrambling)}, so saves on these holes are even more valuable for you.`,
-    detail: `Across the last 8 rounds (${allHoles.length} holes), ${sand} included a shot from sand — ${pct(ratio)}. The rule fires at 25%+. The benchmark scrambling rate for your bracket is ${pct(benchmarks.scrambling)} — until bunker frequency drops, every save is high-leverage.`,
+    title: "Spending a lot of time in bunkers",
+    summary: `You played out of sand on ${pct(ratio)} of holes lately. Until that drops, every save matters more.`,
+    detail: `Across the last 8 rounds (${allHoles.length} holes), ${sand} touched sand, or ${pct(ratio)}. The rule fires at 25%+. Players in your bracket save par at ${pct(benchmarks.scrambling)} when they miss, so the upside is real.`,
     drill: variant.drill,
     selectedDrillVariantId: variant.id,
     triggeringRoundIds: recentRoundIds(rounds, 8),
@@ -460,7 +506,7 @@ export const sandFrequency: Rule = (ctx) => {
     priority,
     confidence,
     playerValue: ratio,
-    playerValueLabel: `${pct(ratio)} sand holes`,
+    playerValueLabel: `${pct(ratio)} of holes`,
     benchmarkValue: benchmarks.scrambling,
     benchmarkLabel: `${pct(benchmarks.scrambling)} scrambling typical`,
   };
@@ -506,9 +552,9 @@ export const frontNineDeficit: Rule = (ctx) => {
   return {
     ruleId: "front_nine_deficit",
     type: "opportunity",
-    title: "Slow starts costing you strokes",
-    summary: `Your front nine averages ${frontAvg.toFixed(1)} vs ${backAvg.toFixed(1)} on the back — a ${delta.toFixed(1)}-stroke gap. Most golfers play within 1 stroke either way.`,
-    detail: `Across the last ${fronts.length} 18-hole rounds, your front nine has averaged ${frontAvg.toFixed(1)} vs ${backAvg.toFixed(1)} on the back. The rule fires at a 3+ stroke gap. A typical "warmed up" gap is under 1.5 strokes.`,
+    title: "Slow starts",
+    summary: `Your front 9 has been averaging ${delta.toFixed(1)} strokes worse than your back 9. Looks like a warmup issue.`,
+    detail: `Across ${fronts.length} 18-hole rounds: front 9 ${frontAvg.toFixed(1)}, back 9 ${backAvg.toFixed(1)}. The rule fires at a 3+ stroke gap. A typical "warmed up" gap is under 1.5.`,
     drill: variant.drill,
     selectedDrillVariantId: variant.id,
     triggeringRoundIds: recentRoundIds(rounds, 10),
@@ -519,7 +565,7 @@ export const frontNineDeficit: Rule = (ctx) => {
     playerValue: delta,
     playerValueLabel: `+${delta.toFixed(1)} on front`,
     benchmarkValue: 1.5,
-    benchmarkLabel: "≤1.5 strokes typical",
+    benchmarkLabel: "≤1.5 typical",
   };
 };
 
@@ -552,9 +598,9 @@ export const threePuttFrequency: Rule = (ctx) => {
   return {
     ruleId: "three_putt_frequency",
     type: "opportunity",
-    title: "Three-putts adding up",
-    summary: `You're averaging ${perRound.toFixed(1)} three-putts/round over the last 5. Bracket benchmark is ${benchmarks.threePutts.toFixed(1)} — every three-putt above it is a stroke you can reclaim.`,
-    detail: `Across your last ${recent.length} rounds you've had ${total} three-or-more-putt holes — ${perRound.toFixed(1)} per round. The rule fires at 3 per round on average. For your bracket, ${benchmarks.threePutts.toFixed(1)} per round is typical.`,
+    title: "Three-putts are adding up",
+    summary: `You're averaging ${perRound.toFixed(1)} three-putts a round. Bracket benchmark is ${benchmarks.threePutts.toFixed(1)}.`,
+    detail: `Last ${recent.length} rounds: ${total} holes with three or more putts, or ${perRound.toFixed(1)} a round. The rule fires at 3 a round. The fastest fix is the lag putt: distance control matters way more than line on long ones.`,
     drill: variant.drill,
     selectedDrillVariantId: variant.id,
     triggeringRoundIds: recentRoundIds(rounds, 5),
@@ -594,9 +640,9 @@ export const penaltyTrouble: Rule = (ctx) => {
   return {
     ruleId: "penalty_trouble",
     type: "opportunity",
-    title: "Penalty strokes hurting your score",
-    summary: `You're averaging ${perRound.toFixed(1)} penalty strokes/round. Bracket benchmark is ${benchmarks.penalties.toFixed(1)}, so course management is leaving real strokes on the table.`,
-    detail: `Across your last ${recent.length} rounds you've taken ${total} penalty strokes — ${perRound.toFixed(1)} per round. Players in your bracket average ${benchmarks.penalties.toFixed(1)}. Lost balls and water carries are the most expensive shots in golf.`,
+    title: "Trouble with penalty strokes",
+    summary: `About ${perRound.toFixed(1)} penalties a round, on average. Most of those usually come from a few specific holes.`,
+    detail: `Last ${recent.length} rounds: ${total} penalty strokes total, ${perRound.toFixed(1)} a round. Players in your bracket take ${benchmarks.penalties.toFixed(1)}. Lost balls and water carries are the most expensive shots in golf.`,
     drill: variant.drill,
     selectedDrillVariantId: variant.id,
     triggeringRoundIds: recentRoundIds(rounds, 5),
@@ -634,9 +680,9 @@ export const parThreeWeakness: Rule = (ctx) => {
   return {
     ruleId: "par_three_weakness",
     type: "opportunity",
-    title: "Par 3 scoring needs work",
-    summary: `Par 3s are averaging +${avgOver.toFixed(1)} over par. Bracket benchmark is +${benchmarks.par3Over.toFixed(1)} — there are real strokes to find here.`,
-    detail: `Across your last 5 rounds you played ${par3Holes.length} par 3 holes and averaged +${avgOver.toFixed(1)}. The rule fires at 1.5 over. Players in your bracket average +${benchmarks.par3Over.toFixed(1)} on par 3s.`,
+    title: "Par 3s have been costly",
+    summary: `Par 3s are averaging +${avgOver.toFixed(1)} over par lately. Bracket is +${benchmarks.par3Over.toFixed(1)}.`,
+    detail: `Last 5 rounds: ${par3Holes.length} par 3 holes, averaging +${avgOver.toFixed(1)}. The rule fires at +1.5. With short irons doing the work, this one's mostly about reps to specific yardages.`,
     drill: variant.drill,
     selectedDrillVariantId: variant.id,
     triggeringRoundIds: recentRoundIds(rounds, 5),
@@ -675,9 +721,9 @@ export const hardestHolesProblem: Rule = (ctx) => {
   return {
     ruleId: "hardest_holes_problem",
     type: "opportunity",
-    title: "Hardest holes are eating your scorecard",
-    summary: `Stroke-index 1-6 holes are averaging +${overPar.toFixed(1)} over par. Bracket benchmark is +${benchmarks.hardestOver.toFixed(1)} — bogey-or-better is the realistic target here.`,
-    detail: `Across your last 5 rounds, the six hardest holes (stroke index 1-6) are averaging +${overPar.toFixed(1)}. The rule fires at par + 2 (bogey + 1) or worse. Players in your bracket average +${benchmarks.hardestOver.toFixed(1)} on the same holes.`,
+    title: "The hardest holes are eating your card",
+    summary: `On stroke index 1-6 holes, you're averaging +${overPar.toFixed(1)} over par. Bogey-or-better is the realistic target there.`,
+    detail: `Last 5 rounds, your six hardest holes averaged +${overPar.toFixed(1)}. Rule fires at +2 (bogey + 1) or worse. Players in your bracket average +${benchmarks.hardestOver.toFixed(1)}, so the gap is real.`,
     drill: variant.drill,
     selectedDrillVariantId: variant.id,
     triggeringRoundIds: recentRoundIds(rounds, 5),
@@ -718,9 +764,9 @@ export const scramblingDeficit: Rule = (ctx) => {
   return {
     ruleId: "scrambling_deficit",
     type: "opportunity",
-    title: "Short game opportunity",
-    summary: `You're saving par from off the green only ${pct(rate)} of the time. Bracket benchmark is ${pct(benchmarks.scrambling)} — the fastest place to find strokes.`,
-    detail: `Across your last 5 rounds you missed the green ${scrambleHoles.length} times and made par or better on ${saved}. That's ${pct(rate)}. The rule flags anything under 25%. Players in your bracket save par at ${pct(benchmarks.scrambling)}.`,
+    title: "Tough to recover when you miss the green",
+    summary: `When the approach misses, you're saving par about ${pct(rate)} of the time. There's room to grow here.`,
+    detail: `Last 5 rounds: ${scrambleHoles.length} green-in-regulation misses, ${saved} saved. That's ${pct(rate)}. Rule flags anything under 25%. Players in your bracket save at ${pct(benchmarks.scrambling)}.`,
     drill: variant.drill,
     selectedDrillVariantId: variant.id,
     triggeringRoundIds: recentRoundIds(rounds, 5),
@@ -761,14 +807,14 @@ export const recentDecline: Rule = (ctx) => {
   return {
     ruleId: "recent_decline",
     type: "opportunity",
-    title: "Scoring trending the wrong way",
-    summary: `Your last 5 differentials average ${recentAvg.toFixed(1)} — up ${delta.toFixed(1)} from the 10 before. That's a real direction-of-travel signal.`,
-    detail: `Recent 5 differentials average ${recentAvg.toFixed(1)}. The 10 before averaged ${previousAvg.toFixed(1)}. That ${delta.toFixed(1)}-stroke jump trips the 1.5 threshold. Persistent declines almost always trace back to one of the basics — grip, alignment, posture, ball position.`,
+    title: "Scoring's been heading the wrong way",
+    summary: `Your last 5 rounds count ${delta.toFixed(1)} strokes higher on average than the 10 before. Direction-of-travel signal worth taking seriously.`,
+    detail: `Last 5 rounds counted: ${recentAvg.toFixed(1)} avg. The 10 before that: ${previousAvg.toFixed(1)}. ${delta.toFixed(1)}-stroke shift trips the 1.5 threshold. Persistent declines almost always trace back to the basics: grip, alignment, posture, ball position.`,
     drill: variant.drill,
     selectedDrillVariantId: variant.id,
     triggeringRoundIds: recentRoundIds(rounds, 5),
     thresholdValue: Math.round(delta * 10) / 10,
-    thresholdLabel: `+${delta.toFixed(1)} avg differential`,
+    thresholdLabel: `+${delta.toFixed(1)} avg`,
     priority,
     confidence,
     playerValue: recentAvg,
@@ -799,9 +845,10 @@ export const puttingImprovement: Rule = (ctx) => {
     ruleId: "putting_improvement",
     type: "strength",
     title: "Putting is sharpening up",
-    summary: `Your last 5 rounds average ${recentAvg.toFixed(1)} putts — ${improvement.toFixed(1)} better than the 10 before. Whatever you've changed, keep it.`,
-    detail: `Last 5 rounds: ${recentAvg.toFixed(1)} putts/round. Previous 10: ${previousAvg.toFixed(1)}. That's a ${improvement.toFixed(1)}-stroke improvement, beyond the 1-stroke threshold.`,
-    drill: "Whatever you're doing on the practice green, keep doing it. Note the routine and replicate it.",
+    summary: `Your last 5 rounds average ${recentAvg.toFixed(1)} putts, ${improvement.toFixed(1)} better than the 10 before. Whatever you've changed, keep it.`,
+    detail: `Last 5: ${recentAvg.toFixed(1)} putts/round. Previous 10: ${previousAvg.toFixed(1)}. ${improvement.toFixed(1)}-stroke improvement, past the 1-stroke threshold this rule looks for.`,
+    drill:
+      "Whatever you're doing on the practice green, keep doing it. Note the routine and replicate it.",
     selectedDrillVariantId: "putting_improvement_default",
     triggeringRoundIds: recentRoundIds(rounds, 5),
     thresholdValue: Math.round(improvement * 10) / 10,
@@ -845,8 +892,8 @@ export const ballStrikingTrend: Rule = (ctx) => {
     ruleId: "ball_striking_trend",
     type: "strength",
     title: "Ball striking is on the up",
-    summary: `Recent GIR rate: ${pct(recentRate)} — up ${pct(improvement)} from the 8 rounds before.`,
-    detail: `Last 8 rounds GIR%: ${pct(recentRate)}. Previous 8: ${pct(previousRate)}. That's a +${pct(improvement)} jump (rule fires at 8%+).`,
+    summary: `Hitting ${pct(recentRate)} of greens lately, up ${pct(improvement)} from the 8 rounds before. Stay out of the toolbox.`,
+    detail: `Last 8 rounds GIR%: ${pct(recentRate)}. Previous 8: ${pct(previousRate)}. +${pct(improvement)} jump (rule fires at 8%+).`,
     drill: "Keep your iron sessions consistent. Don't change anything mechanical right now.",
     selectedDrillVariantId: "ball_striking_trend_default",
     triggeringRoundIds: recentRoundIds(rounds, 8),
@@ -883,10 +930,11 @@ export const handicapDrop: Rule = (ctx) => {
   return {
     ruleId: "handicap_drop",
     type: "milestone",
-    title: "Index is dropping",
-    summary: `You've taken ${drop.toFixed(1)} strokes off your handicap in the last 30 days. ${earlier.handicap_index.toFixed(1)} → ${latestIndex.toFixed(1)}.`,
-    detail: `30 days ago your Handicap Index was ${earlier.handicap_index.toFixed(1)}. Today it's ${latestIndex.toFixed(1)}. A 1.5+ stroke drop in a month is real.`,
-    drill: "You've taken 1.5 strokes off your handicap in a month. Whatever the change, identify it and protect it.",
+    title: "Index is dropping!",
+    summary: `Down ${drop.toFixed(1)} strokes in 30 days. ${earlier.handicap_index.toFixed(1)} → ${latestIndex.toFixed(1)}.`,
+    detail: `Thirty days ago you were at ${earlier.handicap_index.toFixed(1)}. Today you're at ${latestIndex.toFixed(1)}. A 1.5+ stroke drop in a month is real movement.`,
+    drill:
+      "You took 1.5 strokes off in a month. Whatever you changed, name it and protect it.",
     selectedDrillVariantId: "handicap_drop_default",
     triggeringRoundIds: ctx.rounds.length > 0 ? [ctx.rounds[ctx.rounds.length - 1]!.id] : [],
     thresholdValue: Math.round(drop * 10) / 10,
@@ -922,14 +970,14 @@ export const personalBest: Rule = (ctx) => {
   return {
     ruleId: "personal_best",
     type: "milestone",
-    title: "Personal best!",
-    summary: `Your last round's differential of ${last.differential.toFixed(1)} is the lowest in your record. Previous best: ${priorBest.toFixed(1)}.`,
-    detail: `${last.differential.toFixed(1)} differential is a new low across all ${rounds.length} of your tracked rounds. The previous best was ${priorBest.toFixed(1)}, so this beats it by ${improvement.toFixed(1)}.`,
+    title: "New personal best!",
+    summary: `That round counted as ${last.differential.toFixed(1)}, your lowest yet. Old best: ${priorBest.toFixed(1)}.`,
+    detail: `${last.differential.toFixed(1)} is the lowest differential across your ${rounds.length} tracked rounds. Beats the previous best by ${improvement.toFixed(1)}.`,
     drill: "",
     selectedDrillVariantId: null,
     triggeringRoundIds: [last.id],
     thresholdValue: Math.round(last.differential * 10) / 10,
-    thresholdLabel: `${last.differential.toFixed(1)} differential`,
+    thresholdLabel: `${last.differential.toFixed(1)} counted`,
     priority: 70,
     confidence: "high",
     playerValue: last.differential,
