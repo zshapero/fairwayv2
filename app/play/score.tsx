@@ -580,6 +580,7 @@ function PillRow<T extends string>({
           const isSelected = selected === opt.value;
           const style = pillStyle(opt.tone, isSelected);
           const onPress = () => {
+            Haptics.selectionAsync().catch(() => {});
             if (isSelected && !alwaysSelected) onSelect(null);
             else onSelect(opt.value);
           };

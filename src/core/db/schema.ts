@@ -1,4 +1,4 @@
-export const SCHEMA_VERSION = 6;
+export const SCHEMA_VERSION = 7;
 
 export const SCHEMA_STATEMENTS: readonly string[] = [
   `CREATE TABLE IF NOT EXISTS schema_version (
@@ -10,6 +10,7 @@ export const SCHEMA_STATEMENTS: readonly string[] = [
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     name TEXT NOT NULL,
     handicap_index REAL,
+    preferred_tee TEXT,
     created_at TEXT NOT NULL DEFAULT (datetime('now'))
   );`,
 

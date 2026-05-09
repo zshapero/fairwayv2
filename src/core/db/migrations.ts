@@ -127,12 +127,21 @@ export const PLAYER_DRILL_LOG_TABLE_SQL = `CREATE TABLE IF NOT EXISTS player_dri
 export const PLAYER_DRILL_LOG_INDEX_SQL =
   "CREATE INDEX IF NOT EXISTS idx_drill_log_recommendation ON player_drill_log(recommendation_id, practiced_at);";
 
+/** Columns that `players` must have at schema v7. */
+export const PLAYER_COLUMNS_V7: readonly ColumnSpec[] = [
+  {
+    name: "preferred_tee",
+    alterSql: "ALTER TABLE players ADD COLUMN preferred_tee TEXT;",
+  },
+];
+
 export interface ExistingColumnsByTable {
   courses: readonly string[];
   rounds: readonly string[];
   hole_scores: readonly string[];
   /** Empty when the table doesn't yet exist. */
   recommendations?: readonly string[];
+  players?: readonly string[];
 }
 
 export interface ExistingState {
@@ -213,5 +222,22 @@ export function planMigrationToV6(existing: ExistingState): string[] {
     statements.push(PLAYER_DRILL_LOG_INDEX_SQL);
   }
 
+  return statements;
+}
+
+/**
+ * Plan the full set of statements to bring the database to schema v7: the v6
+ * additions plus the new `preferred_tee` column on `players` for the
+ * onboarding flow. Idempotent: skips columns that already exist.
+ */
+export function planMigrationToV7(existing: ExistingState): string[] {
+  const statements = planMigrationToV6(existing);
+  const tables = new Set(existing.tables);
+  if (tables.has("players")) {
+    const existingCols = new Set(existing.columns.players ?? []);
+    for (const spec of PLAYER_COLUMNS_V7) {
+      if (!existingCols.has(spec.name)) statements.push(spec.alterSql);
+    }
+  }
   return statements;
 }

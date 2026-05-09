@@ -1,5 +1,5 @@
 import { getDatabase } from "../database";
-import type { Player } from "../types";
+import type { Player, TeePreference } from "../types";
 
 export async function listPlayers(): Promise<Player[]> {
   const db = await getDatabase();
@@ -24,6 +24,43 @@ export async function updatePlayerHandicapIndex(
 ): Promise<void> {
   const db = await getDatabase();
   await db.runAsync("UPDATE players SET handicap_index = ? WHERE id = ?;", handicapIndex, id);
+}
+
+export interface OnboardingPlayerInput {
+  name: string;
+  estimatedHandicap: number;
+  preferredTee: TeePreference;
+}
+
+export async function createOnboardedPlayer(input: OnboardingPlayerInput): Promise<number> {
+  const db = await getDatabase();
+  const result = await db.runAsync(
+    "INSERT INTO players (name, handicap_index, preferred_tee) VALUES (?, ?, ?);",
+    input.name,
+    input.estimatedHandicap,
+    input.preferredTee,
+  );
+  return result.lastInsertRowId;
+}
+
+export async function updatePlayerProfile(
+  id: number,
+  input: { name?: string; preferredTee?: TeePreference },
+): Promise<void> {
+  const db = await getDatabase();
+  const fields: string[] = [];
+  const values: (string | number)[] = [];
+  if (input.name !== undefined) {
+    fields.push("name = ?");
+    values.push(input.name);
+  }
+  if (input.preferredTee !== undefined) {
+    fields.push("preferred_tee = ?");
+    values.push(input.preferredTee);
+  }
+  if (fields.length === 0) return;
+  values.push(id);
+  await db.runAsync(`UPDATE players SET ${fields.join(", ")} WHERE id = ?;`, ...values);
 }
 
 export async function countPlayers(): Promise<number> {

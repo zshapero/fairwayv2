@@ -22,3 +22,13 @@ export { HomeHero } from "./HomeHero";
 export { PaperGrain } from "./PaperGrain";
 export { AnimatedNumber } from "./AnimatedNumber";
 export { StaggerEntry } from "./StaggerEntry";
+export { Slider } from "./Slider";
+export {
+  FlagIllustration,
+  BagIllustration,
+  TeeIllustration,
+  MagnifierIllustration,
+  PulsingDot,
+  ShimmerCard,
+  IllustrationSlot,
+} from "./Illustrations";
