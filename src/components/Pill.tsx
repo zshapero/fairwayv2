@@ -15,7 +15,7 @@ interface PillProps {
 
 const VARIANT_STYLES: Record<PillVariant, { bg: string; fg: string; border: string }> = {
   positive: { bg: colors.positive, fg: colors.textOnPrimary, border: colors.positive },
-  neutral: { bg: colors.surfaceDeep, fg: colors.textMuted, border: colors.surfaceDeep },
+  neutral: { bg: colors.surfaceDeep, fg: colors.textMuted, border: "rgba(0,0,0,0.18)" },
   attention: { bg: colors.accent, fg: "#1A1A1A", border: colors.accent },
 };
 
@@ -27,16 +27,14 @@ export function Pill({ children, variant = "neutral", outline }: PillProps) {
       style={{
         alignSelf: "flex-start",
         paddingHorizontal: spacing.sm,
-        paddingVertical: 4,
+        paddingVertical: 5,
         borderRadius: radii.sm,
         backgroundColor: outline ? "transparent" : style.bg,
         borderWidth: outline ? 1 : 0,
         borderColor: style.border,
       }}
     >
-      <Micro color={undefined} style={{ color: fg }}>
-        {children}
-      </Micro>
+      <Micro style={{ color: fg }}>{children}</Micro>
     </View>
   );
 }

@@ -1,8 +1,13 @@
 import { useEffect, useMemo, useState } from "react";
-import { ActivityIndicator, Pressable, Text, View } from "react-native";
+import { ActivityIndicator, Pressable, View } from "react-native";
+import { ArrowDown, ArrowUp, Sparkle } from "lucide-react-native";
+import Animated, { FadeIn } from "react-native-reanimated";
 
 import { calculateMovement, type MovementResult } from "@/core/handicap";
 import { loadRoundMovementInputs } from "@/services/roundMovement";
+import { GlassCard } from "./GlassCard";
+import { BodySm, Caption, Display, Hero, Micro } from "./Typography";
+import { colors, spacing } from "@/design/tokens";
 
 interface BaseProps {
   onPress?: () => void;
@@ -84,29 +89,25 @@ export function HandicapMovementCard(props: HandicapMovementCardProps) {
   );
 
   const Wrapper = props.onPress ? Pressable : View;
-  const wrapperProps: Record<string, unknown> = props.onPress
-    ? { onPress: props.onPress }
-    : {};
+  const wrapperProps: Record<string, unknown> = props.onPress ? { onPress: props.onPress } : {};
 
   return (
-    <Wrapper
-      {...wrapperProps}
-      className="rounded-2xl bg-white p-5 shadow-md shadow-gray-300"
-      style={{ elevation: 3 }}
-    >
-      {error ? (
-        <Text className="text-sm text-red-700">{error}</Text>
-      ) : !movement || !resolved ? (
-        <View className="items-center py-4">
-          <ActivityIndicator />
-        </View>
-      ) : (
-        <CardBody
-          movement={movement}
-          newDifferential={resolved.newDifferential}
-          windowSize={Math.min(20, resolved.priorDifferentials.length + 1)}
-        />
-      )}
+    <Wrapper {...wrapperProps}>
+      <GlassCard padding={spacing.xl}>
+        {error ? (
+          <BodySm color="primary">{error}</BodySm>
+        ) : !movement || !resolved ? (
+          <View style={{ alignItems: "center", paddingVertical: spacing.lg }}>
+            <ActivityIndicator color={colors.primary} />
+          </View>
+        ) : (
+          <CardBody
+            movement={movement}
+            newDifferential={resolved.newDifferential}
+            windowSize={Math.min(20, resolved.priorDifferentials.length + 1)}
+          />
+        )}
+      </GlassCard>
     </Wrapper>
   );
 }
@@ -131,13 +132,16 @@ function CardBody({
 
   if (oldIndex === null && newIndex === null) {
     return (
-      <View className="gap-1">
-        <Text className="text-base font-semibold text-fairway-700">
-          One more round and you&apos;ll have a number
-        </Text>
-        <Text className="text-sm text-gray-600">
+      <View style={{ gap: spacing.xs }}>
+        <Micro color="accent" style={{ opacity: 0.8 }}>
+          NEW HERE
+        </Micro>
+        <Display color="primary" style={{ fontSize: 36, lineHeight: 40 }}>
+          One more round
+        </Display>
+        <BodySm>
           Three rounds in and we can give you a Handicap Index. Keep posting.
-        </Text>
+        </BodySm>
       </View>
     );
   }
@@ -151,70 +155,108 @@ function CardBody({
           : "flat"
       : "new";
 
-  const newColor =
-    direction === "down"
-      ? "text-green-600"
-      : direction === "up"
-        ? "text-red-600"
-        : "text-gray-900";
+  const isWin = direction === "down";
+  const numberColor = isWin ? colors.positive : direction === "up" ? colors.danger : colors.text;
 
   const oldLabel = oldIndex === null ? "—" : oldIndex.toFixed(1);
   const newLabel = newIndex === null ? "—" : newIndex.toFixed(1);
-  const movementWord =
-    direction === "down" ? "Down" : direction === "up" ? "Up" : direction === "flat" ? "Flat" : "New";
   const moveAmount =
     oldIndex !== null && newIndex !== null
       ? Math.abs(newIndex - oldIndex).toFixed(1)
       : null;
+  const verb =
+    direction === "down" ? "Down" : direction === "up" ? "Up" : direction === "flat" ? "Flat" : "Now";
 
   return (
-    <View className="gap-3">
-      <View>
-        <Text className="text-xs uppercase tracking-wide text-gray-500">
-          {direction === "new"
-            ? "Your number"
-            : moveAmount
-              ? `${movementWord} ${moveAmount} to`
-              : "Your number"}
-        </Text>
-        <View className="flex-row items-baseline gap-3">
-          <Text className={`text-5xl font-bold ${newColor}`}>{newLabel}</Text>
-          {direction !== "new" ? (
-            <Text className="text-base text-gray-500">
-              was {oldLabel}
-            </Text>
-          ) : null}
-        </View>
+    <View style={{ gap: spacing.md }}>
+      <View style={{ flexDirection: "row", alignItems: "center", gap: spacing.xs }}>
+        <Micro color="accent" style={{ opacity: 0.85 }}>
+          YOUR INDEX
+        </Micro>
+        {isWin ? (
+          <Animated.View entering={FadeIn.duration(360).delay(120)}>
+            <View
+              style={{
+                flexDirection: "row",
+                alignItems: "center",
+                gap: 4,
+                backgroundColor: "rgba(184, 150, 90, 0.18)",
+                paddingHorizontal: spacing.xs,
+                paddingVertical: 3,
+                borderRadius: 999,
+              }}
+            >
+              <Sparkle color={colors.accent} size={11} strokeWidth={1.75} />
+              <Caption style={{ color: colors.accent, fontFamily: "Inter_500Medium" }}>
+                Win
+              </Caption>
+            </View>
+          </Animated.View>
+        ) : null}
       </View>
 
-      <Text className="text-base text-gray-800">
-        That round counted as your{" "}
-        <Text className="font-semibold">{ordinal(newDifferentialRank)}</Text>{" "}
-        best of the last {windowSize}.{" "}
-        {isCounting
-          ? "It's one of the rounds we use to compute your index, so it's helping pull the number where it is."
-          : "It doesn't land in the rounds we use to compute your index, so it didn't move the needle directly."}
-      </Text>
+      <View style={{ flexDirection: "row", alignItems: "baseline", gap: spacing.sm }}>
+        {direction !== "new" && moveAmount ? (
+          <View style={{ flexDirection: "row", alignItems: "center", gap: 4 }}>
+            {direction === "down" ? (
+              <ArrowDown color={numberColor} size={20} strokeWidth={1.75} />
+            ) : direction === "up" ? (
+              <ArrowUp color={numberColor} size={20} strokeWidth={1.75} />
+            ) : null}
+            <BodySm style={{ color: numberColor, fontFamily: "Inter_500Medium" }} tabular>
+              {moveAmount}
+            </BodySm>
+          </View>
+        ) : null}
+        <Hero style={{ color: numberColor, fontSize: 88, lineHeight: 92 }}>{newLabel}</Hero>
+      </View>
 
-      {droppedDifferential !== null ? (
-        <Text className="text-sm text-gray-700">
-          It bumped a previous{" "}
-          <Text className="font-semibold">{droppedDifferential.toFixed(1)}</Text>{" "}
-          out of the calculation.
-        </Text>
+      {direction !== "new" ? (
+        <Caption>was {oldLabel}</Caption>
       ) : null}
 
+      <View style={{ height: 1, backgroundColor: "rgba(0,0,0,0.06)", marginVertical: spacing.xxs }} />
+
+      <BodySm>
+        That round counted as your{" "}
+        <BodySm style={{ fontFamily: "Inter_500Medium" }}>{ordinal(newDifferentialRank)}</BodySm>
+        {" "}best of the last {windowSize}.{" "}
+        {isCounting
+          ? "It's one of the rounds we use to compute your index, so it's helping pull the number where it is."
+          : "It doesn't land in the rounds we use, so it didn't move the needle directly."}
+      </BodySm>
+
+      {droppedDifferential !== null ? (
+        <BodySm color="textMuted">
+          It bumped a previous{" "}
+          <BodySm color="text" style={{ fontFamily: "Inter_500Medium" }}>
+            {droppedDifferential.toFixed(1)}
+          </BodySm>{" "}
+          out of the calculation.
+        </BodySm>
+      ) : null}
+
+      <View style={{ marginTop: spacing.xxs }}>
+        <Caption color="textMuted">
+          The differential we counted: {newDifferential.toFixed(1)}.
+        </Caption>
+      </View>
+
       {triggeredEsr > 0 ? (
-        <View className="rounded-lg bg-amber-50 p-3">
-          <Text className="text-sm font-semibold text-amber-800">
-            Exceptional round!
-          </Text>
-          <Text className="text-sm text-amber-800">
-            Your index also got an extra {triggeredEsr.toFixed(1)}-stroke trim
-            for posting{" "}
-            {triggeredEsr === 2 ? "10 or more" : "7 to 10"} strokes under your
-            old number.
-          </Text>
+        <View
+          style={{
+            marginTop: spacing.xxs,
+            backgroundColor: "rgba(184, 150, 90, 0.16)",
+            borderRadius: 12,
+            padding: spacing.md,
+            gap: spacing.xxs,
+          }}
+        >
+          <Micro color="accent">EXCEPTIONAL ROUND</Micro>
+          <BodySm>
+            Your index also got an extra {triggeredEsr.toFixed(1)}-stroke trim for posting{" "}
+            {triggeredEsr === 2 ? "10 or more" : "7 to 10"} strokes under your old number.
+          </BodySm>
         </View>
       ) : null}
     </View>

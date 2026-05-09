@@ -1,7 +1,13 @@
 import type { ReactNode } from "react";
-import { Pressable, View, type StyleProp, type ViewStyle } from "react-native";
+import { Pressable, type StyleProp, View, type ViewStyle } from "react-native";
+import * as Haptics from "expo-haptics";
+import Animated, {
+  useAnimatedStyle,
+  useSharedValue,
+  withTiming,
+} from "react-native-reanimated";
 
-import { colors, radii, spacing, typography } from "@/design/tokens";
+import { colors, motion, radii, spacing, typography } from "@/design/tokens";
 import { Body } from "./Typography";
 
 export type ButtonVariant = "primary" | "secondary" | "ghost";
@@ -13,6 +19,8 @@ interface ButtonProps {
   disabled?: boolean;
   /** Stretches the button to the available width. */
   full?: boolean;
+  /** Trigger a light haptic on press. Defaults to true for primary. */
+  haptic?: boolean;
   style?: StyleProp<ViewStyle>;
 }
 
@@ -38,18 +46,40 @@ const VARIANT_TEXT: Record<ButtonVariant, keyof typeof colors> = {
   ghost: "primary",
 };
 
+const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
+
 export function Button({
   children,
   onPress,
   variant = "primary",
   disabled,
   full,
+  haptic,
   style,
 }: ButtonProps) {
+  const scale = useSharedValue(1);
+  const animatedStyle = useAnimatedStyle(() => ({
+    transform: [{ scale: scale.value }],
+  }));
+  const wantsHaptic = haptic ?? variant === "primary";
+
+  const handlePress = () => {
+    if (wantsHaptic && !disabled) {
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {});
+    }
+    onPress();
+  };
+
   return (
-    <Pressable
-      onPress={onPress}
+    <AnimatedPressable
+      onPress={handlePress}
       disabled={disabled}
+      onPressIn={() => {
+        scale.value = withTiming(motion.pressedScale, { duration: motion.press.duration });
+      }}
+      onPressOut={() => {
+        scale.value = withTiming(1, { duration: motion.press.duration });
+      }}
       style={[
         {
           paddingVertical: spacing.md,
@@ -61,6 +91,7 @@ export function Button({
           alignSelf: full ? "stretch" : "flex-start",
         },
         VARIANT_STYLES[variant],
+        animatedStyle,
         style,
       ]}
     >
@@ -76,6 +107,6 @@ export function Button({
           {children}
         </Body>
       </View>
-    </Pressable>
+    </AnimatedPressable>
   );
 }

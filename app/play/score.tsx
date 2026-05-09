@@ -1,6 +1,8 @@
 import { router, useLocalSearchParams } from "expo-router";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { ActivityIndicator, Alert, Pressable, View } from "react-native";
+import * as Haptics from "expo-haptics";
+import Animated, { FadeInRight, FadeOut } from "react-native-reanimated";
 
 import * as holeScoresRepo from "@/core/db/repositories/holeScores";
 import * as roundsRepo from "@/core/db/repositories/rounds";
@@ -214,6 +216,7 @@ export default function ScoreScreen() {
       if (holeIndex >= teeHoles.length - 1) {
         router.replace({ pathname: "/play/summary", params: { roundId: String(roundId) } });
       } else {
+        Haptics.selectionAsync().catch(() => {});
         setHoleIndex((idx) => idx + 1);
       }
     } catch (err) {
@@ -289,17 +292,27 @@ export default function ScoreScreen() {
         </Pressable>
       </View>
 
-      <GlassCard>
-        <View style={{ alignItems: "center", gap: spacing.xs }}>
-          <Micro color="accent">HOLE {currentHole.hole_number}</Micro>
-          <Display color="primary">{currentHole.hole_number}</Display>
-          <Heading color="text">Par {par}</Heading>
-          <Caption>
-            {currentHole.yardage ? `${currentHole.yardage}y · ` : ""}of {totalHoles} · HCP{" "}
-            {currentHole.stroke_index}
-          </Caption>
-        </View>
-      </GlassCard>
+      <Animated.View
+        key={`hole-${currentHole.hole_number}`}
+        entering={FadeInRight.duration(300).springify().damping(20)}
+        exiting={FadeOut.duration(180)}
+      >
+        <GlassCard>
+          <View style={{ alignItems: "center", gap: spacing.xs }}>
+            <Micro color="accent" style={{ opacity: 0.85 }}>
+              HOLE {currentHole.hole_number}
+            </Micro>
+            <Display color="primary" style={{ fontSize: 96, lineHeight: 100 }}>
+              {currentHole.hole_number}
+            </Display>
+            <Heading color="text">Par {par}</Heading>
+            <Caption>
+              {currentHole.yardage ? `${currentHole.yardage}y · ` : ""}of {totalHoles} · HCP{" "}
+              {currentHole.stroke_index}
+            </Caption>
+          </View>
+        </GlassCard>
+      </Animated.View>
 
       <Card>
         <View style={{ alignItems: "center", gap: spacing.md }}>

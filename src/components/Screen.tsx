@@ -4,6 +4,7 @@ import { ScrollView, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 import { colors, spacing } from "@/design/tokens";
+import { PaperGrain } from "./PaperGrain";
 
 interface ScreenProps {
   children: ReactNode;
@@ -13,13 +14,15 @@ interface ScreenProps {
   padding?: number;
   className?: string;
   contentContainerStyle?: StyleProp<ViewStyle>;
+  /** Hide the global paper-grain texture (e.g. for full-bleed hero screens). */
+  grain?: boolean;
 }
 
 /**
- * Cream-surfaced screen wrapper with safe-area insets and a 24px gutter.
- * The default state is a vertically-scrollable column; pass `scroll={false}`
- * for screens that fully control their own scroll behaviour (e.g. score
- * entry that needs a fixed footer).
+ * Cream-surfaced screen wrapper. Layers a barely-perceptible paper-grain
+ * texture beneath every screen so the cream surface never reads as flat.
+ * Default state is a vertically scrollable column with 24px gutter and a
+ * generous bottom padding for breathing room.
  */
 export function Screen({
   children,
@@ -27,11 +30,13 @@ export function Screen({
   padding = spacing.lg,
   className,
   contentContainerStyle,
+  grain = true,
 }: ScreenProps) {
   const horizontal = { paddingHorizontal: padding } as const;
   if (!scroll) {
     return (
       <SafeAreaView style={{ flex: 1, backgroundColor: colors.surface }} edges={["top", "bottom"]}>
+        {grain ? <PaperGrain /> : null}
         <View className={className} style={[{ flex: 1 }, horizontal]}>
           {children}
         </View>
@@ -40,10 +45,11 @@ export function Screen({
   }
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: colors.surface }} edges={["top", "bottom"]}>
+      {grain ? <PaperGrain /> : null}
       <ScrollView
         className={className}
         contentContainerStyle={[
-          { paddingTop: spacing.lg, paddingBottom: spacing.xxxl, gap: spacing.lg },
+          { paddingTop: spacing.md, paddingBottom: spacing.hero, gap: spacing.xl },
           horizontal,
           contentContainerStyle,
         ]}
